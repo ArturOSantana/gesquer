@@ -31,7 +31,7 @@ export default function Header() {
               <QrCode className="h-6 w-6" />
             </div>
             <span className="hidden font-bold sm:inline-block">
-              Sistema de Quermesse
+              QuermesseOn!
             </span>
           </Link>
 

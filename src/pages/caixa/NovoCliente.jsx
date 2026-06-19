@@ -20,14 +20,23 @@ import {
 } from 'lucide-react';
 
 /**
- * Página do Caixa: Vincular Cartão Pré-impresso a Cliente
- * 
- * Fluxo:
- * 1. Escanear QR Code do cartão pré-impresso
- * 2. Verificar se cartão está disponível
- * 3. Pedir nome + telefone do cliente
- * 4. Vincular cartão ao cliente
- * 5. Entregar cartão físico ao cliente
+ * Página do Caixa: Ativar Cartão Pré-impresso
+ *
+ * IMPORTANTE: Para ATIVAR um cartão, ele DEVE ser vinculado a um cliente.
+ * Cartões sem cliente ficam em status 'pending' (não ativados).
+ *
+ * Fluxo de Ativação:
+ * 1. Escanear QR Code do cartão pré-impresso (status: pending)
+ * 2. Verificar se cartão está disponível para vinculação
+ * 3. Cadastrar dados do cliente (nome obrigatório + telefone opcional)
+ * 4. Vincular cartão ao cliente → Cartão muda para status 'active'
+ * 5. Entregar cartão físico ativado ao cliente
+ *
+ * REGRAS:
+ * - Cartão só é ATIVADO quando vinculado a um cliente
+ * - Cartão ativado pode fazer recargas e compras
+ * - Para DESATIVAR: use a função de bloqueio de cartão
+ * - Para EXCLUIR: delete o registro do cartão no banco de dados
  */
 export default function NovoCliente() {
   const navigate = useNavigate();
@@ -60,10 +69,10 @@ export default function NovoCliente() {
     setShowScanner(false);
 
     try {
-      // Extrai UUID do QR Code (formato: QUERMESSE:uuid)
+      // Extrai UUID do QR Code (formato: QUERMESSEON:uuid)
       let cardUuid = qrData;
-      if (qrData.startsWith('QUERMESSE:')) {
-        cardUuid = qrData.replace('QUERMESSE:', '');
+      if (qrData.startsWith('QUERMESSEON:')) {
+        cardUuid = qrData.replace('QUERMESSEON:', '');
       }
 
       // Verifica disponibilidade do cartão
@@ -262,11 +271,18 @@ export default function NovoCliente() {
 
         <div className="flex items-center gap-3 mb-2">
           <CreditCard className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Novo Cliente</h1>
+          <h1 className="text-3xl font-bold">Ativar Cartão</h1>
         </div>
         <p className="text-muted-foreground">
-          Vincule um cartão pré-impresso a um novo cliente
+          Vincule e ative um cartão pré-impresso cadastrando um novo cliente
         </p>
+        <Alert className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            <strong>Importante:</strong> O cartão só será ativado após vincular a um cliente.
+            Cartões não vinculados permanecem inativos (status: pending).
+          </AlertDescription>
+        </Alert>
       </div>
 
       {/* PASSO 1: Escanear QR Code */}
@@ -496,11 +512,16 @@ export default function NovoCliente() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Próximos passos:</strong>
-                <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
+                <strong>✅ Cartão Ativado com Sucesso!</strong>
+                <p className="mt-2 text-sm">
+                  O cartão foi vinculado ao cliente e está agora <strong>ATIVO</strong>.
+                  O cliente já pode fazer recargas e compras.
+                </p>
+                <p className="mt-3 font-semibold">Próximos passos:</p>
+                <ol className="list-decimal list-inside mt-1 space-y-1 text-sm">
                   <li>Entregue o cartão físico ao cliente</li>
-                  <li>Oriente sobre como usar o cartão</li>
-                  <li>Cliente pode fazer recarga no caixa</li>
+                  <li>Explique que o cartão está ativo e pronto para uso</li>
+                  <li>Cliente pode fazer recarga no caixa a qualquer momento</li>
                 </ol>
               </AlertDescription>
             </Alert>

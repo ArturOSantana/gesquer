@@ -1,4 +1,4 @@
-# Sistema de Quermesse
+# QuermesseOn!
 
 Sistema completo de gestão de quermesse com controle de cartões, vendas, estoque e transferências.
 

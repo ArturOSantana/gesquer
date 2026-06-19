@@ -6,8 +6,8 @@ import { Download, RefreshCw } from 'lucide-react';
 
 /**
  * Componente para gerar QR Code a partir de UUID
- * Formato: "QUERMESSE:{uuid}"
- * 
+ * Formato: "QUERMESSEON:{uuid}"
+ *
  * @param {Object} props
  * @param {string} props.uuid - UUID do cartão
  * @param {number} props.size - Tamanho do QR Code (padrão: 256)
@@ -35,7 +35,7 @@ export default function QrGenerator({
     setError(null);
 
     try {
-      const qrData = `QUERMESSE:${uuid}`;
+      const qrData = `QUERMESSEON:${uuid}`;
       const canvas = canvasRef.current;
 
       if (canvas) {

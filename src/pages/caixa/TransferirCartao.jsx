@@ -60,8 +60,8 @@ export default function TransferirCartao() {
     try {
       // Extrai UUID do QR Code
       let cardUuid = qrData;
-      if (qrData.startsWith('QUERMESSE:')) {
-        cardUuid = qrData.replace('QUERMESSE:', '');
+      if (qrData.startsWith('QUERMESSEON:')) {
+        cardUuid = qrData.replace('QUERMESSEON:', '');
       }
 
       // Busca informações do cartão
@@ -102,8 +102,8 @@ export default function TransferirCartao() {
     try {
       // Extrai UUID do QR Code
       let cardUuid = qrData;
-      if (qrData.startsWith('QUERMESSE:')) {
-        cardUuid = qrData.replace('QUERMESSE:', '');
+      if (qrData.startsWith('QUERMESSEON:')) {
+        cardUuid = qrData.replace('QUERMESSEON:', '');
       }
 
       // Verifica se não é o mesmo cartão

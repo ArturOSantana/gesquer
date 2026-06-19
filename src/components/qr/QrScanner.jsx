@@ -92,7 +92,7 @@ const getCameraSupportState = () => {
 
 /**
  * Componente para escanear QR Code
- * Espera formato: "QUERMESSE:{uuid}"
+ * Espera formato: "QUERMESSEON:{uuid}"
  *
  * @param {Object} props
  * @param {Function} props.onScan - Callback quando QR Code é escaneado com sucesso (recebe uuid)
@@ -231,8 +231,8 @@ export default function QrScanner({
   const handleScanSuccess = (decodedText) => {
     console.log('QR Code escaneado:', decodedText);
 
-    // Valida formato QUERMESSE:{uuid}
-    const match = decodedText.match(/^QUERMESSE:([a-f0-9-]{36})$/i);
+    // Valida formato QUERMESSEON:{uuid}
+    const match = decodedText.match(/^QUERMESSEON:([a-f0-9-]{36})$/i);
     
     if (match) {
       const uuid = match[1];
@@ -248,7 +248,7 @@ export default function QrScanner({
         stopScanning();
       }
     } else {
-      const errorMsg = 'QR Code inválido. Use apenas QR Codes da Quermesse.';
+      const errorMsg = 'QR Code inválido. Use apenas QR Codes do QuermesseOn!';
       setError(errorMsg);
       if (onError) {
         onError(errorMsg);

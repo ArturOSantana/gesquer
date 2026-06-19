@@ -69,7 +69,7 @@ export default function Home() {
       {/* Hero Section */}
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold mb-4 text-foreground">
-          Sistema de Gestão de Quermesse
+          QuermesseOn!
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
           Gestão completa de cartões, vendas e estoque

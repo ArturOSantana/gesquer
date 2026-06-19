@@ -63,8 +63,8 @@ export default function Sale() {
     try {
       setError(null);
       
-      // Extrai UUID do QR Code (formato: QUERMESSE:{uuid})
-      const uuid = qrData.replace('QUERMESSE:', '').trim();
+      // Extrai UUID do QR Code (formato: QUERMESSEON:{uuid})
+      const uuid = qrData.replace('QUERMESSEON:', '').trim();
       
       // Busca cartão
       const { data: card, error: cardError } = await getCardByUuid(uuid);

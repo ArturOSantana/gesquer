@@ -168,7 +168,7 @@ export function useBatch() {
       const rows = cards.map(card => [
         card.id,
         card.uuid,
-        `QUERMESSE:${card.uuid}`,
+        `QUERMESSEON:${card.uuid}`,
         card.status,
         new Date(card.created_at).toLocaleString('pt-BR')
       ]);
@@ -217,7 +217,7 @@ export function useBatch() {
         cards: cards.map(card => ({
           id: card.id,
           uuid: card.uuid,
-          qr_code: `QUERMESSE:${card.uuid}`,
+          qr_code: `QUERMESSEON:${card.uuid}`,
           status: card.status,
           created_at: card.created_at
         }))

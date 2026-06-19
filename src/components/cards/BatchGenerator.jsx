@@ -30,7 +30,7 @@ export function BatchGenerator() {
       // Gera QR Codes
       const codes = await Promise.all(
         result.cards.map(async (card) => {
-          const qrData = `QUERMESSE:${card.uuid}`;
+          const qrData = `QUERMESSEON:${card.uuid}`;
           const qrCodeUrl = await QRCode.toDataURL(qrData, {
             width: 200,
             margin: 1,
