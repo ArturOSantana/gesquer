@@ -217,8 +217,14 @@ export default function Users() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
-          barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
+          barraca_id: null,
         };
+
+        if (formData.role === ROLES.BARRACA) {
+          updateData.barraca_id = formData.barraca_id ? Number(formData.barraca_id) : null;
+        }
+
+        console.log('💾 Dados que serão atualizados:', updateData);
 
         // Se senha foi fornecida, atualizar também
         if (formData.password) {

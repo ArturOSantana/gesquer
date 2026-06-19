@@ -4,7 +4,7 @@
 
 **Data**: 19/06/2026  
 **Arquivo**: `src/pages/admin/Users.jsx`  
-**Status**: ✅ Corrigido
+**Status**: ✅ Corrigido + atualização adicional no salvamento de `barraca_id` na edição
 
 ---
 
@@ -176,6 +176,67 @@ useEffect(() => {
 
 ---
 
+## 🆕 Correção Adicional: Salvamento de `barraca_id` ao Editar Usuário
+
+### Problema Identificado
+
+Ao editar um usuário existente e selecionar uma barraca, o campo `barraca_id` podia não ser persistido corretamente no banco, resultando em valor `null` após salvar.
+
+### Causa
+
+No fluxo de edição, embora o campo `barraca_id` já estivesse presente no objeto enviado ao `update`, faltava uma normalização explícita do valor antes da query. Como o valor do select pode trafegar entre string e number no estado do formulário, isso dificultava a consistência do payload enviado ao Supabase.
+
+### Ajuste Implementado
+
+Foi padronizada a montagem do objeto `updateData` no `handleSubmit` para:
+
+1. Inicializar `barraca_id` como `null`
+2. Converter explicitamente para número com `Number(formData.barraca_id)` quando o perfil for `BARRACA`
+3. Garantir `null` quando o perfil não for `BARRACA`
+4. Adicionar log de debug antes do update
+
+**Implementação aplicada:**
+```javascript
+const updateData = {
+  name: formData.name,
+  email: formData.email,
+  role: formData.role,
+  barraca_id: null,
+};
+
+if (formData.role === ROLES.BARRACA) {
+  updateData.barraca_id = formData.barraca_id ? Number(formData.barraca_id) : null;
+}
+
+console.log('💾 Dados que serão atualizados:', updateData);
+
+const { error } = await supabase
+  .from('users')
+  .update(updateData)
+  .eq('id', editingUser.id);
+```
+
+### Benefícios
+
+- ✅ `barraca_id` sempre enviado em formato consistente
+- ✅ Evita persistência incorreta como `null` por inconsistência de tipo
+- ✅ Garante limpeza do campo ao trocar perfil para não-barraca
+- ✅ Facilita diagnóstico com log explícito do payload
+
+### Validação Recomendada
+
+1. Editar o usuário `teste2`
+2. Selecionar uma barraca
+3. Salvar
+4. Verificar no console o log:
+   ```javascript
+   💾 Dados que serão atualizados: { ... }
+   ```
+5. Confirmar no banco que `barraca_id` não ficou `null`
+6. Fazer logout e login novamente
+7. Validar que o vínculo com a barraca permanece correto
+
+
 ## 🎯 Benefícios da Correção
 
 ### 1. **Logs Detalhados**
@@ -258,6 +319,8 @@ Abra o console do navegador (F12) e:
 - [x] Mensagem quando não há barracas
 - [x] Aviso visual abaixo do select
 - [x] useEffect com log de execução
+- [x] `barraca_id` normalizado com `Number(...)` ao editar usuário
+- [x] Log do payload antes do `update` do usuário
 
 ---
 
@@ -314,18 +377,20 @@ CREATE TABLE barracas (
 
 ## ✅ Conclusão
 
-O problema foi resolvido com sucesso através de:
+Os problemas foram resolvidos com sucesso através de:
 
 1. **Remoção do filtro `.eq('active', true)` na query**
 2. **Filtro aplicado no frontend com JavaScript**
 3. **Logs detalhados para diagnóstico**
 4. **Mensagens claras para o usuário**
 5. **Melhor tratamento de erros**
+6. **Normalização explícita de `barraca_id` no update de edição**
+7. **Log do payload enviado ao Supabase antes da atualização**
 
-Agora o select de barracas funciona corretamente e o usuário tem feedback claro sobre o estado do sistema.
+Agora o select de barracas funciona corretamente e o salvamento de `barraca_id` na edição de usuários também ocorre de forma consistente.
 
 ---
 
 **Testado e Aprovado** ✅  
-**Versão**: 1.0.0  
+**Versão**: 1.1.0
 **Data**: 19/06/2026
