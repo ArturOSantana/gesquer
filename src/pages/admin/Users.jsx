@@ -252,6 +252,33 @@ export default function Users() {
     }
   }
 
+  async function handleDeletePermanently(user) {
+    try {
+      setLoading(true);
+
+      // 1. Deletar do Supabase Auth (isso também deleta da tabela users via CASCADE)
+      const { error: authError } = await supabase.auth.admin.deleteUser(user.id);
+
+      if (authError) throw authError;
+
+      toast({
+        title: 'Sucesso',
+        description: 'Usuário excluído permanentemente com sucesso',
+      });
+
+      loadUsers();
+    } catch (error) {
+      console.error('Erro ao excluir usuário:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao excluir usuário permanentemente',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   if (loading && users.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -439,6 +466,7 @@ export default function Users() {
                     <Edit className="w-4 h-4" />
                   </Button>
                   
+                  {/* Botão Desativar/Ativar */}
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
@@ -446,7 +474,7 @@ export default function Users() {
                         size="sm"
                         disabled={user.id === profile?.id}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {user.active ? 'Desativar' : 'Ativar'}
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -455,8 +483,8 @@ export default function Users() {
                           {user.active ? 'Desativar' : 'Ativar'} usuário?
                         </AlertDialogTitle>
                         <AlertDialogDescription>
-                          {user.active 
-                            ? 'O usuário não poderá mais acessar o sistema.'
+                          {user.active
+                            ? 'O usuário não poderá mais acessar o sistema, mas seus dados serão mantidos.'
                             : 'O usuário poderá acessar o sistema novamente.'
                           }
                         </AlertDialogDescription>
@@ -465,6 +493,47 @@ export default function Users() {
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
                         <AlertDialogAction onClick={() => handleToggleActive(user)}>
                           Confirmar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                  {/* Botão Excluir Permanentemente */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        disabled={user.id === profile?.id}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-red-600">
+                          ⚠️ Excluir permanentemente?
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="space-y-2">
+                          <p className="font-semibold text-gray-900">
+                            Esta ação NÃO pode ser desfeita!
+                          </p>
+                          <p>
+                            O usuário <strong>{user.name}</strong> ({user.email}) será
+                            completamente removido do sistema.
+                          </p>
+                          <p className="text-red-600">
+                            ⚠️ Todos os dados de autenticação serão apagados permanentemente.
+                          </p>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeletePermanently(user)}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          Sim, excluir permanentemente
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
