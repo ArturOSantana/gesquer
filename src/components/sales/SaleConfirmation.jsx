@@ -2,39 +2,47 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, CreditCard, ShoppingCart, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, CreditCard, ShoppingCart, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 /**
  * Componente de confirmação de venda
+ * Exibe resumo completo e validações antes de processar
  */
-export function SaleConfirmation({ 
-  card, 
-  barraca, 
-  items, 
+export function SaleConfirmation({
+  card,
+  barraca,
+  items,
   total,
-  onConfirm, 
+  onConfirm,
   onCancel,
   loading,
   error
 }) {
-  const hasBalance = card && card.balance >= total;
+  // Validações
+  const currentBalance = card?.balance || 0;
+  const newBalance = currentBalance - total;
+  const hasBalance = currentBalance >= total;
+  const hasSufficientBalance = newBalance >= 0;
+  
+  // Validação de dados
+  const isValid = card && barraca && items && items.length > 0 && total > 0;
 
   return (
-    <Card>
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${hasBalance ? 'bg-green-100' : 'bg-red-100'}`}>
-            {hasBalance ? (
+          <div className={`p-2 rounded-lg ${hasSufficientBalance ? 'bg-green-100' : 'bg-red-100'}`}>
+            {hasSufficientBalance ? (
               <CheckCircle2 className="h-6 w-6 text-green-600" />
             ) : (
               <XCircle className="h-6 w-6 text-red-600" />
             )}
           </div>
-          <div>
-            <CardTitle>Confirmar Venda</CardTitle>
+          <div className="flex-1">
+            <CardTitle className="text-xl sm:text-2xl">Confirmar Venda</CardTitle>
             <CardDescription>
-              Revise os detalhes antes de finalizar
+              Revise cuidadosamente os detalhes antes de finalizar
             </CardDescription>
           </div>
         </div>
@@ -107,76 +115,117 @@ export function SaleConfirmation({
           </div>
         </div>
 
-        {/* Resumo Financeiro */}
-        <div className="space-y-3 p-3 sm:p-4 rounded-lg border bg-accent/50">
-          <div className="flex justify-between text-xs sm:text-sm">
-            <span className="text-muted-foreground">Subtotal:</span>
-            <span>{formatCurrency(total)}</span>
+        {/* Resumo Financeiro Detalhado */}
+        <div className="space-y-3 p-4 sm:p-5 rounded-lg border-2 bg-accent/30">
+          <div className="flex justify-between items-center text-sm sm:text-base">
+            <span className="text-muted-foreground font-medium">Saldo Atual:</span>
+            <span className="font-bold text-lg">{formatCurrency(currentBalance)}</span>
           </div>
-          <div className="flex justify-between text-base sm:text-lg font-bold pt-2 border-t">
-            <span>Total a Pagar:</span>
-            <span className="text-primary">{formatCurrency(total)}</span>
+          
+          <div className="flex justify-between items-center text-sm sm:text-base pt-2 border-t">
+            <span className="text-muted-foreground font-medium">Total da Compra:</span>
+            <span className="font-bold text-lg text-primary">{formatCurrency(total)}</span>
           </div>
-          <div className="flex justify-between text-xs sm:text-sm pt-2 border-t">
-            <span className="text-muted-foreground">Saldo Após Venda:</span>
-            <span className={hasBalance ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-              {formatCurrency((card?.balance || 0) - total)}
+          
+          <div className={`flex justify-between items-center text-base sm:text-lg font-bold pt-3 border-t-2 ${
+            hasSufficientBalance ? 'text-green-600' : 'text-red-600'
+          }`}>
+            <span>Novo Saldo:</span>
+            <span className="text-xl sm:text-2xl">
+              {formatCurrency(newBalance)}
             </span>
+          </div>
+
+          {/* Indicador visual de saldo */}
+          <div className="pt-2">
+            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className={`h-full transition-all ${
+                  hasSufficientBalance ? 'bg-green-500' : 'bg-red-500'
+                }`}
+                style={{
+                  width: `${Math.min(100, Math.max(0, (newBalance / currentBalance) * 100))}%`
+                }}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Alertas */}
-        {!hasBalance && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Saldo insuficiente. Faltam {formatCurrency(total - (card?.balance || 0))} para completar a compra.
-            </AlertDescription>
-          </Alert>
-        )}
+        {/* Alertas e Validações */}
+        <div className="space-y-3">
+          {!isValid && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Dados inválidos. Verifique o cartão, barraca e itens selecionados.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
+          {!hasSufficientBalance && isValid && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="font-semibold">
+                ⚠️ Saldo Insuficiente! Faltam {formatCurrency(Math.abs(newBalance))} para completar a compra.
+              </AlertDescription>
+            </Alert>
+          )}
 
-        {hasBalance && (
-          <Alert>
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertDescription>
-              Saldo suficiente para completar a compra.
-            </AlertDescription>
-          </Alert>
-        )}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Erro:</strong> {error}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {hasSufficientBalance && isValid && !error && (
+            <Alert className="border-green-200 bg-green-50">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                ✓ Saldo suficiente. A venda pode ser processada.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {loading && (
+            <Alert className="border-blue-200 bg-blue-50">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                Processando venda... Aguarde e não feche esta janela.
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       </CardContent>
 
-      <CardFooter className="flex flex-col sm:flex-row gap-2">
+      <CardFooter className="flex flex-col sm:flex-row gap-3 pt-6">
         <Button
           variant="outline"
           onClick={onCancel}
           disabled={loading}
-          className="w-full sm:flex-1 text-sm sm:text-base"
+          className="w-full sm:flex-1 text-sm sm:text-base py-6"
+          size="lg"
         >
+          <XCircle className="mr-2 h-4 w-4" />
           Cancelar
         </Button>
         <Button
           onClick={onConfirm}
-          disabled={!hasBalance || loading}
-          className="w-full sm:flex-1 text-sm sm:text-base"
+          disabled={!hasSufficientBalance || !isValid || loading}
+          className="w-full sm:flex-1 text-sm sm:text-base py-6"
+          size="lg"
         >
           {loading ? (
             <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              <span className="truncate">Processando...</span>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <span className="truncate">Processando Venda...</span>
             </>
           ) : (
             <>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              <span className="truncate">Confirmar Venda</span>
+              <CheckCircle2 className="mr-2 h-5 w-5" />
+              <span className="truncate">Confirmar e Finalizar</span>
             </>
           )}
         </Button>

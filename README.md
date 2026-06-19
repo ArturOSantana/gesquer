@@ -1,5 +1,11 @@
 # QuermesseOn!
 
+## ⚠️ ALERTA - Correção de RLS Necessária
+
+Se você está vendo erro "infinite recursion detected", execute IMEDIATAMENTE o script em [EMERGENCIA-RLS-V3.md](./EMERGENCIA-RLS-V3.md).
+
+Este erro impede login no sistema. A correção leva menos de 2 minutos.
+
 Sistema completo de gestão de quermesse com controle de cartões, vendas, estoque e transferências.
 
 ## 🚀 Stack Tecnológica
@@ -156,6 +162,11 @@ Para instruções detalhadas, incluindo troubleshooting e configurações avanç
 - ✅ Teste localmente: `npm run build`
 - ✅ Verifique os logs na Vercel
 - ✅ Certifique-se que todas as dependências estão no package.json
+
+**Erro de RLS ao criar usuários?**
+- ✅ Consulte o **[Guia Final de Correção de RLS](./GUIA-FINAL-RLS.md)** para resolver definitivamente
+- ✅ Erro: "new row violates row-level security policy for table 'users'"
+- ✅ Solução: Executar script SQL de correção de políticas RLS
 
 #### Deploy via CLI (Opcional)
 

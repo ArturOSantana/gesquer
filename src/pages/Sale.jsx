@@ -7,13 +7,16 @@ import { SaleConfirmation } from '@/components/sales/SaleConfirmation';
 import { SaleReceipt } from '@/components/sales/SaleReceipt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { useBarracas } from '@/hooks/useBarracas';
 import { useProducts } from '@/hooks/useProducts';
 import { useCards } from '@/hooks/useCards';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useSaleIdempotency } from '@/hooks/useSaleIdempotency';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { ShoppingCart, QrCode, AlertCircle, CreditCard, Store } from 'lucide-react';
+import { formatCurrency } from '@/lib/utils';
+import { ShoppingCart, QrCode, AlertCircle, CreditCard, Store, Plus, Minus, Package } from 'lucide-react';
 
 /**
  * Página de vendas
@@ -27,18 +30,20 @@ export default function Sale() {
   const { barracas, loading: barracasLoading } = useBarracas();
   const { getCardByUuid } = useCards();
   const { processSale } = useTransactions();
+  const { idempotencyKey, processing: idempotencyProcessing, startProcessing, generateNewKey } = useSaleIdempotency();
   
   // Estados principais
   const [step, setStep] = useState('select-barraca'); // select-barraca, scan-card, add-items, confirm, receipt
   const [selectedBarraca, setSelectedBarraca] = useState(null);
   const [scannedCard, setScannedCard] = useState(null);
   const [cartItems, setCartItems] = useState([]);
+  const [quantities, setQuantities] = useState({}); // Quantidades por produto
   const [saleResult, setSaleResult] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
 
   // Hook de produtos (carrega quando barraca é selecionada)
-  const { products } = useProducts(selectedBarraca?.id);
+  const { products, loading: productsLoading } = useProducts(selectedBarraca?.id);
 
   // Define barraca fixa para operador de barraca
   useEffect(() => {
@@ -72,9 +77,21 @@ export default function Sale() {
     if (selectedBarraca) {
       setScannedCard(null);
       setCartItems([]);
+      setQuantities({});
       setError(null);
     }
   }, [selectedBarraca]);
+
+  // Inicializa quantities quando produtos são carregados
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const initialQuantities = {};
+      products.forEach(product => {
+        initialQuantities[product.id] = 0;
+      });
+      setQuantities(initialQuantities);
+    }
+  }, [products]);
 
   // Seleciona barraca
   const handleBarracaSelect = (barraca) => {
@@ -122,60 +139,38 @@ export default function Sale() {
     }
   };
 
-  // Adiciona item ao carrinho
-  const handleAddToCart = (item) => {
-    setCartItems(prev => {
-      const existingItem = prev.find(i => i.product_id === item.product_id);
-      
-      if (existingItem) {
-        // Atualiza quantidade
-        return prev.map(i =>
-          i.product_id === item.product_id
-            ? { ...i, quantity: i.quantity + item.quantity }
-            : i
-        );
-      } else {
-        // Adiciona novo item
-        return [...prev, item];
-      }
-    });
-
-    toast({
-      title: 'Item adicionado!',
-      description: `${item.quantity}x ${item.name}`,
+  // Atualiza quantidade de um produto
+  const updateQuantity = (productId, delta) => {
+    setQuantities(prev => {
+      const currentQty = prev[productId] || 0;
+      const newQty = Math.max(0, currentQty + delta);
+      return {
+        ...prev,
+        [productId]: newQty
+      };
     });
   };
 
-  // Atualiza quantidade de item
-  const handleUpdateQuantity = (productId, newQuantity) => {
-    if (newQuantity < 1) return;
-    
-    setCartItems(prev =>
-      prev.map(item =>
-        item.product_id === productId
-          ? { ...item, quantity: newQuantity }
-          : item
-      )
-    );
+  // Define quantidade diretamente
+  const setQuantity = (productId, value) => {
+    const qty = Math.max(0, parseInt(value) || 0);
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: qty
+    }));
   };
 
-  // Remove item do carrinho
-  const handleRemoveItem = (productId) => {
-    setCartItems(prev => prev.filter(item => item.product_id !== productId));
-    
-    toast({
-      title: 'Item removido',
-      description: 'O item foi removido do carrinho.',
+  // Limpa todas as quantidades
+  const clearQuantities = () => {
+    const resetQuantities = {};
+    products.forEach(product => {
+      resetQuantities[product.id] = 0;
     });
-  };
-
-  // Limpa carrinho
-  const handleClearCart = () => {
-    setCartItems([]);
+    setQuantities(resetQuantities);
     
     toast({
-      title: 'Carrinho limpo',
-      description: 'Todos os itens foram removidos.',
+      title: 'Quantidades zeradas',
+      description: 'Todas as quantidades foram resetadas.',
     });
   };
 
@@ -199,20 +194,41 @@ export default function Sale() {
       return;
     }
 
-    if (cartItems.length === 0) {
+    // Monta carrinho a partir das quantidades
+    const items = products
+      .filter(product => quantities[product.id] > 0)
+      .map(product => ({
+        product_id: product.id,
+        name: product.name,
+        quantity: quantities[product.id],
+        unit_price: product.price
+      }));
+
+    if (items.length === 0) {
       toast({
-        title: 'Carrinho vazio',
-        description: 'Adicione itens antes de finalizar.',
+        title: 'Nenhum produto selecionado',
+        description: 'Adicione pelo menos um produto antes de finalizar.',
         variant: 'destructive',
       });
       return;
     }
-    
+
+    setCartItems(items);
     setStep('confirm');
   };
 
   // Confirma venda
   const handleConfirmSale = async () => {
+    // Previne cliques duplos
+    if (!startProcessing()) {
+      toast({
+        title: 'Aguarde',
+        description: 'A venda já está sendo processada.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setProcessing(true);
     setError(null);
 
@@ -236,6 +252,8 @@ export default function Sale() {
         }))
       };
 
+      console.log('Processando venda com idempotency_key:', idempotencyKey);
+
       // Processa venda
       const result = await processSale(saleData);
 
@@ -246,6 +264,9 @@ export default function Sale() {
       // Salva resultado
       setSaleResult(result);
       setStep('receipt');
+
+      // Gera nova chave para próxima venda
+      generateNewKey();
 
       toast({
         title: 'Venda realizada!',
@@ -272,8 +293,10 @@ export default function Sale() {
   const handleNewSale = () => {
     setScannedCard(null);
     setCartItems([]);
+    clearQuantities();
     setSaleResult(null);
     setError(null);
+    generateNewKey(); // Nova chave de idempotência
     setStep(selectedBarraca?.id ? 'scan-card' : 'select-barraca');
   };
 
@@ -282,8 +305,24 @@ export default function Sale() {
     navigate('/');
   };
 
-  // Calcula total
-  const total = cartItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
+  // Calcula total baseado nas quantidades
+  const calculateTotal = () => {
+    if (!products || products.length === 0) return 0;
+    
+    return products.reduce((sum, product) => {
+      const qty = quantities[product.id] || 0;
+      return sum + (qty * product.price);
+    }, 0);
+  };
+
+  // Calcula total de itens
+  const calculateTotalItems = () => {
+    return Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
+  };
+
+  const total = step === 'confirm' || step === 'receipt'
+    ? cartItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
+    : calculateTotal();
 
   return (
     <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl">
@@ -442,40 +481,27 @@ export default function Sale() {
         )}
 
         {step === 'add-items' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <div className="space-y-4 sm:space-y-6">
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">Barraca em operação</p>
-                    <p className="text-lg font-semibold">{selectedBarraca?.name || 'Não definida'}</p>
-                    {isBarraca && (
-                      <p className="text-sm text-primary">
-                        Barraca fixa do operador.
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-              {/* Info do Cartão */}
+          <div className="space-y-4 sm:space-y-6">
+            {/* Info do Cartão e Barraca */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="h-5 w-5" />
-                    Cartão Identificado
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Cartão do Cliente
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <p className="font-semibold text-lg">{scannedCard?.client?.name}</p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="font-semibold text-base sm:text-lg">{scannedCard?.client?.name}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       Cartão: {scannedCard?.uuid?.slice(0, 8)}...
                     </p>
                     <div className="pt-2 border-t">
                       <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">Saldo:</span>
-                        <span className="text-xl font-bold text-green-600">
-                          R$ {scannedCard?.balance?.toFixed(2)}
+                        <span className="text-sm text-muted-foreground">Saldo Disponível:</span>
+                        <span className="text-lg sm:text-xl font-bold text-green-600">
+                          {formatCurrency(scannedCard?.balance || 0)}
                         </span>
                       </div>
                     </div>
@@ -483,22 +509,177 @@ export default function Sale() {
                 </CardContent>
               </Card>
 
-              {/* Formulário de Produtos */}
-              <SaleForm
-                products={products}
-                onAddToCart={handleAddToCart}
-                cartItems={cartItems}
-              />
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+                    <Store className="h-4 w-4 sm:h-5 sm:w-5" />
+                    Barraca
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-1">
+                    <p className="font-semibold text-base sm:text-lg">{selectedBarraca?.name}</p>
+                    {selectedBarraca?.responsible && (
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        Responsável: {selectedBarraca.responsible}
+                      </p>
+                    )}
+                    {isBarraca && (
+                      <p className="text-xs sm:text-sm text-primary font-medium pt-2">
+                        ✓ Barraca fixa do operador
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Carrinho */}
-            <SaleCart
-              items={cartItems}
-              onUpdateQuantity={handleUpdateQuantity}
-              onRemoveItem={handleRemoveItem}
-              onClear={handleClearCart}
-              onCheckout={handleCheckout}
-            />
+            {/* Lista de Produtos com Quantidades */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    Produtos da Barraca
+                  </CardTitle>
+                  {calculateTotalItems() > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearQuantities}
+                      className="text-xs"
+                    >
+                      Limpar Tudo
+                    </Button>
+                  )}
+                </div>
+                <CardDescription>
+                  Selecione as quantidades dos produtos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {productsLoading ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    Carregando produtos...
+                  </div>
+                ) : products && products.length > 0 ? (
+                  <div className="space-y-3">
+                    {products.map(product => {
+                      const qty = quantities[product.id] || 0;
+                      const subtotal = qty * product.price;
+                      
+                      return (
+                        <div
+                          key={product.id}
+                          className={`flex items-center justify-between p-3 sm:p-4 border rounded-lg transition-colors ${
+                            qty > 0 ? 'bg-primary/5 border-primary/30' : 'bg-card'
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0 mr-3">
+                            <p className="font-semibold text-sm sm:text-base truncate">
+                              {product.name}
+                            </p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-xs sm:text-sm text-muted-foreground">
+                                {formatCurrency(product.price)} / unidade
+                              </p>
+                              {product.stock_quantity !== null && (
+                                <p className="text-xs text-muted-foreground">
+                                  • Estoque: {product.stock_quantity}
+                                </p>
+                              )}
+                            </div>
+                            {qty > 0 && (
+                              <p className="text-xs sm:text-sm font-semibold text-primary mt-1">
+                                Subtotal: {formatCurrency(subtotal)}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => updateQuantity(product.id, -1)}
+                              disabled={qty === 0}
+                              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
+                            >
+                              <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+
+                            <div className="w-12 sm:w-16 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                value={qty}
+                                onChange={(e) => setQuantity(product.id, e.target.value)}
+                                className="w-full text-center font-bold text-base sm:text-lg border rounded px-1 py-1"
+                              />
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => updateQuantity(product.id, 1)}
+                              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
+                            >
+                              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Nenhum produto cadastrado para esta barraca.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Resumo e Botão de Finalizar */}
+            <Card className="sticky bottom-4 shadow-lg">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center text-sm sm:text-base">
+                    <span className="text-muted-foreground">Total de Itens:</span>
+                    <span className="font-semibold text-lg">
+                      {calculateTotalItems()} {calculateTotalItems() === 1 ? 'item' : 'itens'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center pt-3 border-t">
+                    <span className="font-semibold text-base sm:text-lg">Total a Pagar:</span>
+                    <span className="font-bold text-xl sm:text-2xl text-primary">
+                      {formatCurrency(calculateTotal())}
+                    </span>
+                  </div>
+
+                  {calculateTotal() > (scannedCard?.balance || 0) && (
+                    <Alert variant="destructive" className="text-xs sm:text-sm">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Saldo insuficiente! Faltam {formatCurrency(calculateTotal() - (scannedCard?.balance || 0))}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    onClick={handleCheckout}
+                    disabled={calculateTotalItems() === 0 || processing}
+                    className="w-full py-6 text-base sm:text-lg font-semibold"
+                    size="lg"
+                  >
+                    <ShoppingCart className="mr-2 h-5 w-5" />
+                    Continuar para Confirmação
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         )}
 

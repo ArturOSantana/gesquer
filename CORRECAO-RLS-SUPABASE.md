@@ -208,7 +208,7 @@ END $$;
 Depois execute o script completo novamente.
 
 ### Erro: "infinite recursion detected"
-**Causa**: Políticas antigas ainda estão ativas.
+**Causa**: Políticas antigas ainda estão ativas ou as políticas fazem subquery na própria tabela users.
 
 **Solução**:
 1. Execute o comando de limpeza acima
@@ -217,7 +217,72 @@ Depois execute o script completo novamente.
    SELECT COUNT(*) FROM pg_policies WHERE tablename = 'users';
    -- Deve retornar 0
    ```
-3. Execute o script completo
+3. **Use o script V3** que verifica roles via `auth.jwt()` ao invés de subquery
+
+---
+
+## ⚠️ Erro: Infinite Recursion Detected
+
+### O Que É Este Erro?
+
+Se você encontrar o erro **"infinite recursion detected in policy for relation 'users'"**, significa que as políticas RLS estão fazendo subquery na própria tabela `users`, criando um loop infinito.
+
+### Por Que Acontece?
+
+**Exemplo de política problemática (V2):**
+```sql
+CREATE POLICY "users_select_admin"
+ON users FOR SELECT
+TO authenticated
+USING (
+  EXISTS (
+    SELECT 1 FROM users  -- ← PROBLEMA: consulta a própria tabela!
+    WHERE users.id = auth.uid()
+    AND users.role IN ('admin', 'superadmin')
+  )
+);
+```
+
+**O loop:**
+1. Usuário tenta ler a tabela `users`
+2. Política verifica se é admin consultando `users`
+3. Para consultar `users`, precisa verificar se é admin
+4. Para verificar se é admin, consulta `users`
+5. **LOOP INFINITO** 🔄
+
+### Solução: Use auth.jwt() (V3)
+
+**Política corrigida:**
+```sql
+CREATE POLICY "users_select_admin"
+ON users FOR SELECT
+TO authenticated
+USING (
+  (auth.jwt() ->> 'user_metadata')::jsonb ->> 'role' IN ('admin', 'superadmin')
+  -- ↑ Lê do token JWT, SEM consultar a tabela users!
+);
+```
+
+### Como Aplicar a Correção
+
+1. **Execute o script V3** completo do arquivo `supabase/fix-rls-policies.sql`
+2. O script V3 usa `auth.jwt()` em todas as políticas de admin
+3. Não há mais subqueries na tabela `users`
+
+### Verificar Se Foi Corrigido
+
+Execute esta query para ver as políticas:
+```sql
+SELECT
+  policyname,
+  pg_get_expr(qual, 'users'::regclass) as using_clause
+FROM pg_policies
+WHERE tablename = 'users'
+AND policyname LIKE '%admin%';
+```
+
+✅ **Correto**: Deve mostrar `auth.jwt()` nas cláusulas
+❌ **Errado**: Se mostrar `SELECT ... FROM users`, ainda tem recursão
 
 ### Usuários Ainda Não Conseguem Ser Criados
 **Verificações**:
