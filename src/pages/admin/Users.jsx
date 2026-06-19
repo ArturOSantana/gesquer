@@ -70,9 +70,10 @@ export default function Users() {
     try {
       console.log('🔍 Carregando barracas...');
       
+      // Buscar todas as colunas para descobrir o schema
       const { data, error } = await supabase
         .from('barracas')
-        .select('id, name, active')
+        .select('*')
         .order('name');
 
       console.log('📊 Resposta da query:', { data, error });
@@ -82,8 +83,31 @@ export default function Users() {
         throw error;
       }
 
-      // Filtrar apenas barracas ativas
-      const barracasAtivas = (data || []).filter(b => b.active === true);
+      // Mostrar colunas disponíveis para debug
+      if (data && data.length > 0) {
+        console.log('📋 Colunas disponíveis na tabela barracas:', Object.keys(data[0]));
+      }
+
+      // Filtrar barracas ativas - tentar diferentes nomes de coluna
+      const barracasAtivas = (data || []).filter(b => {
+        // Tentar diferentes nomes de coluna de status
+        if ('ativa' in b) {
+          console.log(`Barraca ${b.name}: ativa = ${b.ativa}`);
+          return b.ativa === true;
+        }
+        if ('is_active' in b) {
+          console.log(`Barraca ${b.name}: is_active = ${b.is_active}`);
+          return b.is_active === true;
+        }
+        if ('active' in b) {
+          console.log(`Barraca ${b.name}: active = ${b.active}`);
+          return b.active === true;
+        }
+        // Se não tem coluna de status, considerar todas ativas
+        console.log(`Barraca ${b.name}: sem coluna de status, considerando ativa`);
+        return true;
+      });
+      
       console.log('✅ Barracas ativas encontradas:', barracasAtivas.length, barracasAtivas);
       
       setBarracas(barracasAtivas);
