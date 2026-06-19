@@ -127,9 +127,12 @@ O sistema está otimizado para deploy na Vercel com configuração automática.
    ```
    VITE_SUPABASE_URL=https://seu-projeto.supabase.co
    VITE_SUPABASE_ANON_KEY=sua-chave-anonima-aqui
+   VITE_SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key-aqui
    ```
    
    **Sem essas variáveis, a aplicação mostrará tela em branco!**
+   
+   📖 **[CONFIGURACAO-VERCEL-SERVICE-ROLE.md](./CONFIGURACAO-VERCEL-SERVICE-ROLE.md)** - Guia detalhado para configurar a Service Role Key
 
 4. **Deploy**
    - Clique em "Deploy"

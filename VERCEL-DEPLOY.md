@@ -77,6 +77,11 @@ Na página de configuração do projeto na Vercel:
 |------|-------|---------|
 | `VITE_SUPABASE_URL` | URL do seu projeto Supabase | `https://xyzabc123.supabase.co` |
 | `VITE_SUPABASE_ANON_KEY` | Chave anônima do Supabase | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
+| `VITE_SUPABASE_SERVICE_ROLE_KEY` | Chave service_role do Supabase | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` |
+
+**⚠️ IMPORTANTE:** A `VITE_SUPABASE_SERVICE_ROLE_KEY` é necessária para criar usuários em produção. Sem ela, você receberá erro de RLS ao tentar criar usuários.
+
+📖 **[CONFIGURACAO-VERCEL-SERVICE-ROLE.md](./CONFIGURACAO-VERCEL-SERVICE-ROLE.md)** - Guia detalhado para configurar a Service Role Key
 
 #### Variáveis Opcionais:
 
@@ -107,6 +112,10 @@ Para cada variável, selecione os ambientes:
 │ Environments: ☑ Production ☑ Preview ☐ Development         │
 │                                                              │
 │ Name: VITE_SUPABASE_ANON_KEY                                │
+│ Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...             │
+│ Environments: ☑ Production ☑ Preview ☐ Development         │
+│                                                              │
+│ Name: VITE_SUPABASE_SERVICE_ROLE_KEY                        │
 │ Value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...             │
 │ Environments: ☑ Production ☑ Preview ☐ Development         │
 │                                                              │
@@ -169,6 +178,21 @@ Abra o DevTools (F12) e verifique o Console:
 1. Verifique se adicionou `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`
 2. Certifique-se que os valores estão corretos (sem espaços extras)
 3. Faça um redeploy após adicionar as variáveis
+
+### Problema: Erro ao Criar Usuários (RLS Policy Violation)
+
+**Causa:** `VITE_SUPABASE_SERVICE_ROLE_KEY` não configurada
+
+**Erro típico:**
+```
+new row violates row-level security policy for table "users"
+```
+
+**Solução:**
+1. Obtenha a service_role key no Supabase (Settings → API)
+2. Adicione `VITE_SUPABASE_SERVICE_ROLE_KEY` nas variáveis de ambiente da Vercel
+3. Faça um redeploy
+4. Consulte o guia detalhado: [CONFIGURACAO-VERCEL-SERVICE-ROLE.md](./CONFIGURACAO-VERCEL-SERVICE-ROLE.md)
 
 ### Problema: Erro 404 ao Navegar
 
