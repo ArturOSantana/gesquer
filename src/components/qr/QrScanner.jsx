@@ -532,19 +532,6 @@ export default function QrScanner({
           )}
         </div>
 
-        {/* Instruções */}
-        {!showManualInput && (
-          <div className="text-xs text-muted-foreground space-y-1 border-t pt-3">
-            <p className="font-semibold mb-1">Instruções:</p>
-            <p>• Use HTTPS ou localhost para liberar acesso à câmera</p>
-            <p>• Permita o acesso à câmera quando solicitado</p>
-            <p>• No iPhone/iPad, prefira Safari atualizado</p>
-            <p>• Mantenha o QR Code bem iluminado</p>
-            <p>• Posicione o código dentro da área marcada</p>
-            <p>• Se a câmera não funcionar, use a entrada manual</p>
-            {continuous && <p>• Modo contínuo: scanner não para após leitura</p>}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

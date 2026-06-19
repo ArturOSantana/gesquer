@@ -32,7 +32,31 @@ dist-ssr
 
 # Made with Bob
 
-# Database SQL files
+# Arquivos SQL sensíveis
+*.sql
 database/*.sql
 database/**/*.sql
-*.sql
+supabase/migrations/*.sql
+supabase/seed.sql
+
+# Backups de banco
+*.backup
+*.dump
+
+# Arquivos de build
+dist/
+build/
+
+# Cache
+.cache/
+.vite/
+
+# Arquivos do sistema
+Thumbs.db
+
+# Documentacao Markdown (exceto README)
+*.md
+!README.md
+
+# Manter apenas documentacao essencial
+!docs/README.md

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
@@ -9,7 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   CreditCard,
@@ -24,37 +23,18 @@ import {
 } from 'lucide-react';
 
 /**
- * Página de Recarga do Caixa
- * Fluxo inteligente com feedback visual aprimorado
+ * Página de Recarga do Caixa - OTIMIZADA
+ * Layout fixo, sem bloqueios complexos, performance melhorada
  */
 export default function Recarga() {
   const navigate = useNavigate();
-  const [step, setStep] = useState('scan'); // 'scan' | 'register' | 'confirm' | 'success'
+  const [step, setStep] = useState('scan');
   const [scannedQR, setScannedQR] = useState(null);
   const [cardData, setCardData] = useState(null);
   const [clientData, setClientData] = useState({ name: '', phone: '' });
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
-
-  const isFlowLocked = step !== 'scan' && step !== 'success';
-  const shouldBlockExit = step === 'register' || step === 'confirm' || loading;
-  const hasValidRechargeAmount = rechargeAmount && parseFloat(rechargeAmount) > 0;
-
-  useEffect(() => {
-    const handleBeforeUnload = (event) => {
-      if (!shouldBlockExit) return;
-
-      event.preventDefault();
-      event.returnValue = '';
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [shouldBlockExit]);
 
   // Quando escaneia QR Code
   async function handleQRScanned(qrData) {
@@ -204,13 +184,12 @@ export default function Recarga() {
     setShowScanner(false);
   }
 
-  // Voltar
+  // Voltar - simplificado
   function handleBack() {
-    if (shouldBlockExit) {
-      toast.error('Finalize ou cancele o fluxo atual pelos botões da tela para evitar saída acidental');
+    if (loading) {
+      toast.error('Aguarde a operação atual finalizar');
       return;
     }
-
     navigate('/caixa');
   }
 
@@ -232,15 +211,16 @@ export default function Recarga() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      {/* Header fixo */}
-      <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-4 max-w-2xl">
-          <div className="flex items-center justify-between gap-3">
+      {/* Header fixo - altura fixa */}
+      <div className="sticky top-0 z-10 bg-white border-b shadow-sm h-[72px]">
+        <div className="container mx-auto px-4 h-full max-w-2xl">
+          <div className="flex items-center justify-between gap-3 h-full">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={handleBack}
+                disabled={loading}
                 className="h-10 w-10"
               >
                 <ArrowLeft className="h-5 w-5" />
@@ -256,30 +236,22 @@ export default function Recarga() {
               </div>
             </div>
             
-            {/* Indicador de progresso */}
+            {/* Indicador de progresso - fixo */}
             <div className="flex gap-2 shrink-0">
-              <div className={`h-2 w-2 rounded-full ${step === 'scan' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-              <div className={`h-2 w-2 rounded-full ${step === 'register' || step === 'confirm' ? 'bg-blue-600' : 'bg-gray-300'}`} />
-              <div className={`h-2 w-2 rounded-full ${step === 'success' ? 'bg-green-600' : 'bg-gray-300'}`} />
+              <div className={`h-2 w-2 rounded-full transition-colors ${step === 'scan' ? 'bg-blue-600' : 'bg-gray-300'}`} />
+              <div className={`h-2 w-2 rounded-full transition-colors ${step === 'register' || step === 'confirm' ? 'bg-blue-600' : 'bg-gray-300'}`} />
+              <div className={`h-2 w-2 rounded-full transition-colors ${step === 'success' ? 'bg-green-600' : 'bg-gray-300'}`} />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Conteúdo */}
+      {/* Conteúdo - altura fixa para cards principais */}
       <div className="container mx-auto px-4 py-6 max-w-2xl pb-24">
-        {isFlowLocked && (
-          <Alert className="mb-4 border-amber-200 bg-amber-50">
-            <AlertCircle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              <strong>Fluxo protegido:</strong> use os botões da própria tela para cancelar ou concluir a recarga. Isso evita sair acidentalmente no meio do processo.
-            </AlertDescription>
-          </Alert>
-        )}
-        {/* PASSO 1: Escanear QR Code */}
+        {/* PASSO 1: Escanear QR Code - altura fixa */}
         {step === 'scan' && (
           <div className="space-y-4">
-            <Card>
+            <Card className="min-h-[400px]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Scan className="h-5 w-5" />
@@ -340,9 +312,9 @@ export default function Recarga() {
           </div>
         )}
 
-        {/* PASSO 2: Cadastrar Cliente (se novo) */}
+        {/* PASSO 2: Cadastrar Cliente - altura fixa */}
         {step === 'register' && (
-          <Card>
+          <Card className="min-h-[500px]">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -426,11 +398,11 @@ export default function Recarga() {
           </Card>
         )}
 
-        {/* PASSO 3: Confirmar Recarga */}
+        {/* PASSO 3: Confirmar Recarga - layout fixo */}
         {step === 'confirm' && cardData && (
           <div className="space-y-4">
-            {/* Informações do Cliente */}
-            <Card>
+            {/* Informações do Cliente - altura fixa */}
+            <Card className="min-h-[180px]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -459,8 +431,8 @@ export default function Recarga() {
               </CardContent>
             </Card>
 
-            {/* Valor da Recarga */}
-            <Card>
+            {/* Valor da Recarga - altura fixa */}
+            <Card className="min-h-[320px]">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="h-5 w-5" />
@@ -513,9 +485,9 @@ export default function Recarga() {
               </CardContent>
             </Card>
 
-            {/* Preview do Novo Saldo */}
+            {/* Preview do Novo Saldo - altura fixa */}
             {rechargeAmount && parseFloat(rechargeAmount) > 0 && (
-              <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-blue-50">
+              <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-blue-50 min-h-[200px]">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-green-700">
                     <TrendingUp className="h-5 w-5" />

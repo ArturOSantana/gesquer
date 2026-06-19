@@ -17,6 +17,7 @@ import GenerateBatch from './pages/admin/GenerateBatch'
 import BatchList from './pages/admin/BatchList'
 import BatchDetails from './pages/admin/BatchDetails'
 import Users from './pages/admin/Users'
+import GerarQRLote from './pages/admin/GerarQRLote'
 import NovoCliente from './pages/caixa/NovoCliente'
 import Recarga from './pages/caixa/Recarga'
 import TransferirCartao from './pages/caixa/TransferirCartao'
@@ -172,6 +173,16 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['superadmin']}>
                     <Users />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin - Gerar QR Codes em Lote - APENAS SUPERADMIN */}
+              <Route
+                path="admin/gerar-qr-lote"
+                element={
+                  <ProtectedRoute allowedRoles={['superadmin']}>
+                    <GerarQRLote />
                   </ProtectedRoute>
                 }
               />
