@@ -53,7 +53,7 @@ export default function Header() {
     if (profile.role === 'caixa') {
       return [
         { name: 'Novo Cliente', href: '/caixa/novo-cliente', icon: UserPlus },
-        { name: 'Recarregar', href: '/scan', icon: Wallet },
+        { name: 'Recarregar', href: '/caixa/recarga', icon: CreditCard },
         { name: 'Transferir', href: '/caixa/transferir-cartao', icon: ArrowLeftRight },
         { name: 'Histórico', href: '/historico', icon: History },
       ]
