@@ -184,7 +184,7 @@ export function useDashboard() {
         .from('transactions')
         .select(`
           *,
-          cards (card_number, holder_name),
+          cards (id, client:clients(name)),
           barracas (name)
         `)
         .order('created_at', { ascending: false })
@@ -225,7 +225,7 @@ export function useDashboard() {
       // Cartões bloqueados
       const { data: cartoesBloqueados, error: cartoesError } = await supabase
         .from('cards')
-        .select('card_number, holder_name')
+        .select('id, client:clients(name)')
         .eq('status', 'blocked');
 
       if (cartoesError) throw cartoesError;
@@ -234,7 +234,7 @@ export function useDashboard() {
         alertsList.push({
           type: 'error',
           title: 'Cartão Bloqueado',
-          message: `${cartao.holder_name} - ${cartao.card_number}`,
+          message: `${cartao.client?.name || 'Cliente desconhecido'} - ID: ${cartao.id.substring(0, 8)}...`,
           timestamp: new Date(),
         });
       });

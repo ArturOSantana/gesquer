@@ -116,10 +116,10 @@ export function RecentTransactions({ data }) {
                   </div>
                   <div className="text-sm">
                     <span className="font-medium">
-                      {transaction.cards?.holder_name || 'Cliente'}
+                      {transaction.cards?.client?.name || 'Cliente'}
                     </span>
-                    <span className="text-muted-foreground ml-2">
-                      {transaction.cards?.card_number || ''}
+                    <span className="text-muted-foreground ml-2 text-xs">
+                      {transaction.cards?.id ? `ID: ${String(transaction.cards.id).substring(0, 8)}...` : ''}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">

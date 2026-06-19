@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, BarChart3, Menu, LogOut, User, Users, Wallet, UserPlus, Layers, ChevronDown } from 'lucide-react'
-import { useState } from 'react'
+import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, BarChart3, Menu, LogOut, User, Users, Wallet, UserPlus, Layers, ChevronDown, X } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
@@ -12,6 +12,35 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState(null)
   const { profile, logout, isAuthenticated } = useAuth()
+  const mobileMenuRef = useRef(null)
+  const dropdownRef = useRef(null)
+
+  // Fechar menu mobile ao pressionar ESC
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false)
+        setOpenDropdown(null)
+      }
+    }
+    
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpenDropdown(null)
+      }
+    }
+    
+    if (openDropdown !== null) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [openDropdown])
 
   // Navegação baseada no perfil do usuário
   const getNavigation = () => {
@@ -53,6 +82,7 @@ export default function Header() {
           dropdown: [
             { name: 'Usuários', href: '/admin/usuarios', icon: Users },
             { name: 'Gerar Lote', href: '/admin/gerar-lote', icon: Layers },
+            { name: 'Ver Lotes', href: '/admin/batches', icon: Layers },
           ]
         },
       ]
@@ -153,18 +183,26 @@ export default function Header() {
               // Item com dropdown
               if (item.dropdown) {
                 return (
-                  <div key={index} className="relative">
+                  <div key={index} className="relative" ref={openDropdown === index ? dropdownRef : null}>
                     <button
                       onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
-                      className="flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setOpenDropdown(openDropdown === index ? null : index)
+                        }
+                      }}
+                      className="flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      aria-expanded={openDropdown === index}
+                      aria-haspopup="true"
                     >
                       <Icon className="h-4 w-4" />
                       <span>{item.name}</span>
-                      <ChevronDown className="h-3 w-3" />
+                      <ChevronDown className={`h-3 w-3 transition-transform ${openDropdown === index ? 'rotate-180' : ''}`} />
                     </button>
                     
                     {openDropdown === index && (
-                      <div className="absolute top-full left-0 mt-1 w-48 rounded-md border bg-popover shadow-lg z-50">
+                      <div className="absolute top-full left-0 mt-1 w-48 rounded-md border bg-popover shadow-lg z-50" role="menu">
                         <div className="p-1">
                           {item.dropdown.map((subItem) => {
                             const SubIcon = subItem.icon
@@ -196,7 +234,7 @@ export default function Header() {
                 <Link
                   key={item.href}
                   to={item.href}
-                  className={`flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  className={`flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
                     isActive(item.href)
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -224,7 +262,8 @@ export default function Header() {
               variant="outline"
               size="sm"
               onClick={handleLogout}
-              className="gap-2"
+              className="gap-2 min-h-[44px]"
+              aria-label="Sair da aplicação"
             >
               <LogOut className="h-4 w-4" />
               Sair
@@ -234,16 +273,23 @@ export default function Header() {
           {/* Mobile menu button */}
           <button
             type="button"
-            className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            className="lg:hidden inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-primary min-h-[44px] min-w-[44px]"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={mobileMenuOpen}
           >
-            <Menu className="h-6 w-6" />
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
-          <nav className="lg:hidden border-t py-4">
+          <nav
+            ref={mobileMenuRef}
+            className="lg:hidden border-t py-4 animate-in slide-in-from-top-2"
+            role="navigation"
+            aria-label="Menu de navegação mobile"
+          >
             {/* User Info Mobile */}
             <div className="flex items-center justify-between mb-4 pb-4 border-b">
               <div className="flex items-center gap-2">
@@ -259,7 +305,8 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 onClick={handleLogout}
-                className="gap-2"
+                className="gap-2 min-h-[44px]"
+                aria-label="Sair da aplicação"
               >
                 <LogOut className="h-4 w-4" />
                 Sair

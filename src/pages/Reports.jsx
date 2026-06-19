@@ -20,13 +20,14 @@ export default function Reports() {
 
   const exportToCSV = () => {
     const filtered = filterTransactions();
-    const headers = ['Data', 'Tipo', 'Valor', 'Barraca', 'Cartão'];
+    const headers = ['Data', 'Tipo', 'Valor', 'Barraca', 'Cliente', 'ID Cartão'];
     const rows = filtered.map(t => [
       new Date(t.created_at).toLocaleString('pt-BR'),
       t.type,
       t.amount,
       t.barracas?.name || 'N/A',
-      t.cards?.card_number || 'N/A',
+      t.cards?.client?.name || 'N/A',
+      t.cards?.id ? String(t.cards.id).substring(0, 8) : 'N/A',
     ]);
 
     const csvContent = [
@@ -237,7 +238,7 @@ export default function Reports() {
                       <th className="text-left p-2">Data</th>
                       <th className="text-left p-2">Tipo</th>
                       <th className="text-left p-2">Barraca</th>
-                      <th className="text-left p-2">Cartão</th>
+                      <th className="text-left p-2">Cliente</th>
                       <th className="text-right p-2">Valor</th>
                     </tr>
                   </thead>
@@ -249,7 +250,12 @@ export default function Reports() {
                         </td>
                         <td className="p-2 capitalize">{transaction.type}</td>
                         <td className="p-2">{transaction.barracas?.name || 'N/A'}</td>
-                        <td className="p-2">{transaction.cards?.card_number || 'N/A'}</td>
+                        <td className="p-2">
+                          {transaction.cards?.client?.name || 'N/A'}
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {transaction.cards?.id ? `(${String(transaction.cards.id).substring(0, 8)}...)` : ''}
+                          </span>
+                        </td>
                         <td className="p-2 text-right font-semibold">
                           {formatCurrency(transaction.amount)}
                         </td>

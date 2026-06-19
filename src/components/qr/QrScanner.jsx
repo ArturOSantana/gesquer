@@ -435,13 +435,16 @@ export default function QrScanner({
                 placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
                 value={manualUuid}
                 onChange={(e) => setManualUuid(e.target.value)}
-                className="font-mono text-sm"
+                className="font-mono text-sm min-h-[44px]"
+                autoFocus
+                aria-label="Digite o UUID do cartão"
+                aria-describedby="uuid-help"
               />
-              <p className="text-xs text-muted-foreground">
+              <p id="uuid-help" className="text-xs text-muted-foreground">
                 Digite o UUID completo do cartão (36 caracteres)
               </p>
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full min-h-[44px]">
               <CheckCircle2 className="mr-2 h-4 w-4" />
               Confirmar UUID
             </Button>
@@ -479,8 +482,13 @@ export default function QrScanner({
               {!isScanning ? (
                 <Button
                   onClick={startScanning}
-                  className="w-full"
+                  className="w-full min-h-[44px]"
                   disabled={!scanner && cameraSupport.supported}
+                  aria-label={!cameraSupport.supported
+                    ? 'Câmera indisponível'
+                    : permissionState === 'denied'
+                      ? 'Solicitar permissão de câmera'
+                      : 'Iniciar scanner de QR Code'}
                 >
                   <Camera className="mr-2 h-4 w-4" />
                   {!cameraSupport.supported
@@ -493,7 +501,8 @@ export default function QrScanner({
                 <Button
                   onClick={stopScanning}
                   variant="destructive"
-                  className="w-full"
+                  className="w-full min-h-[44px]"
+                  aria-label="Parar scanner de QR Code"
                 >
                   <XCircle className="mr-2 h-4 w-4" />
                   Parar Scanner
@@ -502,8 +511,9 @@ export default function QrScanner({
               <Button
                 onClick={toggleManualInput}
                 variant="outline"
-                className="w-full"
+                className="w-full min-h-[44px]"
                 disabled={isScanning}
+                aria-label="Alternar para entrada manual de UUID"
               >
                 <Keyboard className="mr-2 h-4 w-4" />
                 Digitar UUID Manualmente
@@ -513,7 +523,8 @@ export default function QrScanner({
             <Button
               onClick={toggleManualInput}
               variant="outline"
-              className="w-full"
+              className="w-full min-h-[44px]"
+              aria-label="Voltar para scanner de QR Code"
             >
               <Camera className="mr-2 h-4 w-4" />
               Voltar para Scanner

@@ -14,6 +14,8 @@ import BarracaManagement from './pages/BarracaManagement'
 import CardManagement from './pages/CardManagement'
 import Reports from './pages/Reports'
 import GenerateBatch from './pages/admin/GenerateBatch'
+import BatchList from './pages/admin/BatchList'
+import BatchDetails from './pages/admin/BatchDetails'
 import Users from './pages/admin/Users'
 import NovoCliente from './pages/caixa/NovoCliente'
 import TransferirCartao from './pages/caixa/TransferirCartao'
@@ -139,6 +141,26 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['superadmin']}>
                     <GenerateBatch />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin - Ver Lotes - APENAS SUPERADMIN */}
+              <Route
+                path="admin/batches"
+                element={
+                  <ProtectedRoute allowedRoles={['superadmin']}>
+                    <BatchList />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin - Detalhes do Lote - APENAS SUPERADMIN */}
+              <Route
+                path="admin/batches/:id"
+                element={
+                  <ProtectedRoute allowedRoles={['superadmin']}>
+                    <BatchDetails />
                   </ProtectedRoute>
                 }
               />

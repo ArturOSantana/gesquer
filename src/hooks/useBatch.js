@@ -1,12 +1,52 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 
+const QR_PREFIX = 'QUERMESSEON:';
+
+function formatBatchCreator(batch, usersMap) {
+  if (!batch?.generated_by) return 'Não informado';
+  return usersMap[batch.generated_by]?.name || batch.generated_by;
+}
+
+function normalizeBatch(batch, usersMap = {}) {
+  const cardsCount = Array.isArray(batch.cards) && batch.cards[0]?.count !== undefined
+    ? batch.cards[0].count
+    : batch.quantity;
+
+  return {
+    ...batch,
+    cards_count: cardsCount,
+    creator_name: formatBatchCreator(batch, usersMap),
+  };
+}
+
+function getCardStatusLabel(status, clientName) {
+  if (status === 'active' && clientName) return `Vinculado: ${clientName}`;
+  if (status === 'pending') return 'Não vinculado';
+  if (status === 'inactive') return 'Inativo';
+  if (status === 'blocked') return 'Bloqueado';
+  return status || 'Desconhecido';
+}
+
 /**
  * Hook para gerenciar lotes de cartões pré-gerados
  */
 export function useBatch() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const loadUsersMap = async () => {
+    const { data, error: usersError } = await supabase
+      .from('users')
+      .select('id, name');
+
+    if (usersError) throw usersError;
+
+    return (data || []).reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+  };
 
   /**
    * Gera um novo lote de cartões
@@ -16,12 +56,10 @@ export function useBatch() {
     setError(null);
 
     try {
-      // Gera código único do lote
       const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
       const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       const batchCode = `BATCH-${timestamp}-${random}`;
 
-      // Cria o lote
       const { data: batch, error: batchError } = await supabase
         .from('card_batches')
         .insert({
@@ -36,22 +74,17 @@ export function useBatch() {
 
       if (batchError) throw batchError;
 
-      // Gera os cartões do lote
-      const cards = [];
-      for (let i = 0; i < quantity; i++) {
-        cards.push({
-          batch_id: batch.id,
-          is_pre_generated: true,
-          status: 'pending',
-          balance: 0
-        });
-      }
+      const cards = Array.from({ length: quantity }, () => ({
+        batch_id: batch.id,
+        is_pre_generated: true,
+        status: 'pending',
+        balance: 0
+      }));
 
-      // Insere todos os cartões de uma vez
       const { data: generatedCards, error: cardsError } = await supabase
         .from('cards')
         .insert(cards)
-        .select('id, uuid, batch_id, created_at');
+        .select('id, uuid, batch_id, created_at, status, balance');
 
       if (cardsError) throw cardsError;
 
@@ -88,18 +121,32 @@ export function useBatch() {
         `)
         .order('created_at', { ascending: false });
 
-      // Aplica filtros
-      if (filters.status) {
+      if (filters.status && filters.status !== 'all') {
         query = query.eq('status', filters.status);
       }
 
-      const { data, error: fetchError } = await query;
+      if (filters.createdBy) {
+        query = query.ilike('generated_by', `%${filters.createdBy}%`);
+      }
+
+      if (filters.dateFrom) {
+        query = query.gte('created_at', `${filters.dateFrom}T00:00:00`);
+      }
+
+      if (filters.dateTo) {
+        query = query.lte('created_at', `${filters.dateTo}T23:59:59`);
+      }
+
+      const [{ data, error: fetchError }, usersMap] = await Promise.all([
+        query,
+        loadUsersMap()
+      ]);
 
       if (fetchError) throw fetchError;
 
       return {
         success: true,
-        batches: data
+        batches: (data || []).map((batch) => normalizeBatch(batch, usersMap))
       };
     } catch (err) {
       console.error('Erro ao buscar lotes:', err);
@@ -121,28 +168,53 @@ export function useBatch() {
     setError(null);
 
     try {
-      // Busca o lote
-      const { data: batch, error: batchError } = await supabase
-        .from('card_batches')
-        .select('*')
-        .eq('id', batchId)
-        .single();
+      const [{ data: batch, error: batchError }, { data: cards, error: cardsError }, usersMap] = await Promise.all([
+        supabase
+          .from('card_batches')
+          .select('*')
+          .eq('id', batchId)
+          .single(),
+        supabase
+          .from('cards')
+          .select(`
+            id,
+            uuid,
+            status,
+            balance,
+            activated_at,
+            created_at,
+            updated_at,
+            client_id,
+            clients:client_id (
+              id,
+              name
+            )
+          `)
+          .eq('batch_id', batchId)
+          .order('created_at', { ascending: true }),
+        loadUsersMap()
+      ]);
 
       if (batchError) throw batchError;
-
-      // Busca os cartões do lote
-      const { data: cards, error: cardsError } = await supabase
-        .from('cards')
-        .select('id, uuid, status, balance, activated_at, created_at')
-        .eq('batch_id', batchId)
-        .order('created_at', { ascending: true });
-
       if (cardsError) throw cardsError;
+
+      const normalizedBatch = normalizeBatch(batch, usersMap);
+      const normalizedCards = (cards || []).map((card) => {
+        const clientName = card.clients?.name || null;
+
+        return {
+          ...card,
+          qr_value: `${QR_PREFIX}${card.uuid}`,
+          client_name: clientName,
+          binding_status_label: getCardStatusLabel(card.status, clientName),
+          is_bound: Boolean(clientName),
+        };
+      });
 
       return {
         success: true,
-        batch,
-        cards
+        batch: normalizedBatch,
+        cards: normalizedCards
       };
     } catch (err) {
       console.error('Erro ao buscar detalhes do lote:', err);
@@ -161,36 +233,34 @@ export function useBatch() {
    */
   const exportBatchCSV = (batch, cards) => {
     try {
-      // Cabeçalho do CSV
-      const headers = ['ID', 'UUID', 'QR Code', 'Status', 'Criado em'];
-      
-      // Linhas de dados
+      const headers = ['ID', 'UUID', 'QR Code', 'Status', 'Cliente', 'Criado em'];
+
       const rows = cards.map(card => [
         card.id,
         card.uuid,
-        `QUERMESSEON:${card.uuid}`,
+        `${QR_PREFIX}${card.uuid}`,
         card.status,
+        card.client_name || '',
         new Date(card.created_at).toLocaleString('pt-BR')
       ]);
 
-      // Monta o CSV
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.join(','))
+        ...rows.map(row => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
       ].join('\n');
 
-      // Cria o blob e faz download
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `${batch.batch_code}_cartoes.csv`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       return { success: true };
     } catch (err) {
@@ -209,16 +279,20 @@ export function useBatch() {
     try {
       const data = {
         batch: {
+          id: batch.id,
           code: batch.batch_code,
           quantity: batch.quantity,
           description: batch.description,
-          created_at: batch.created_at
+          created_at: batch.created_at,
+          generated_by: batch.generated_by,
+          creator_name: batch.creator_name
         },
         cards: cards.map(card => ({
           id: card.id,
           uuid: card.uuid,
-          qr_code: `QUERMESSEON:${card.uuid}`,
+          qr_code: `${QR_PREFIX}${card.uuid}`,
           status: card.status,
+          client_name: card.client_name,
           created_at: card.created_at
         }))
       };
@@ -227,18 +301,33 @@ export function useBatch() {
       const blob = new Blob([jsonContent], { type: 'application/json' });
       const link = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute('href', url);
       link.setAttribute('download', `${batch.batch_code}_cartoes.json`);
       link.style.visibility = 'hidden';
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      URL.revokeObjectURL(url);
 
       return { success: true };
     } catch (err) {
       console.error('Erro ao exportar JSON:', err);
+      return {
+        success: false,
+        error: err.message
+      };
+    }
+  };
+
+  const printBatch = (batch) => {
+    try {
+      document.title = `Lote ${batch.batch_code}`;
+      window.print();
+      return { success: true };
+    } catch (err) {
+      console.error('Erro ao imprimir lote:', err);
       return {
         success: false,
         error: err.message
@@ -254,7 +343,6 @@ export function useBatch() {
     setError(null);
 
     try {
-      // Atualiza status do lote
       const { error: batchError } = await supabase
         .from('card_batches')
         .update({ status: 'cancelled' })
@@ -262,7 +350,6 @@ export function useBatch() {
 
       if (batchError) throw batchError;
 
-      // Atualiza status dos cartões não ativados
       const { error: cardsError } = await supabase
         .from('cards')
         .update({ status: 'inactive' })
@@ -292,6 +379,7 @@ export function useBatch() {
     getBatchDetails,
     exportBatchCSV,
     exportBatchJSON,
+    printBatch,
     cancelBatch
   };
 }
