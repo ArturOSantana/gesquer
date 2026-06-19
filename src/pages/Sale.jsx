@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Layout from '@/components/layout/Layout';
 import { BarracaSelector } from '@/components/barracas/BarracaSelector';
 import QrScanner from '@/components/qr/QrScanner';
 import { SaleForm } from '@/components/sales/SaleForm';
@@ -232,10 +231,9 @@ export default function Sale() {
   const total = cartItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
   return (
-    <Layout>
-      <div className="space-y-6">
-        {/* Cabeçalho */}
-        <div className="flex items-center justify-between">
+    <div className="container mx-auto px-4 py-6 space-y-6">
+      {/* Cabeçalho */}
+      <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10">
               <ShoppingCart className="h-8 w-8 text-primary" />
@@ -417,9 +415,8 @@ export default function Sale() {
               onGoHome={handleGoHome}
             />
           </div>
-        )}
-      </div>
-    </Layout>
+      )}
+    </div>
   );
 }
 
