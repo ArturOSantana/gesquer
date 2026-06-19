@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/use-toast';
+
+// Cliente admin para operações privilegiadas (confirmação automática de email)
+const supabaseAdmin = createClient(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+);
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
@@ -128,22 +135,35 @@ export default function Users() {
   function handleOpenDialog(user = null) {
     if (user) {
       setEditingUser(user);
-      setFormData({
+      const normalizedBarracaId = user.barraca_id ? Number(user.barraca_id) : null;
+      const editFormData = {
         name: user.name,
         email: user.email,
         password: '',
         role: user.role,
-        barraca_id: user.barraca_id || '',
-      });
+        barraca_id: normalizedBarracaId,
+      };
+
+      console.log('📝 Abrindo modal de edição do usuário:', user);
+      console.log('🏪 barraca_id original do usuário:', user.barraca_id, 'tipo:', typeof user.barraca_id);
+      console.log('🔢 barraca_id normalizado para o formulário:', normalizedBarracaId, 'tipo:', typeof normalizedBarracaId);
+      console.log('📦 FormData inicial do modal:', editFormData);
+
+      setFormData(editFormData);
     } else {
       setEditingUser(null);
-      setFormData({
+      const initialFormData = {
         name: '',
         email: '',
         password: '',
         role: ROLES.CAIXA,
-        barraca_id: '',
-      });
+        barraca_id: null,
+      };
+
+      console.log('🆕 Abrindo modal para novo usuário');
+      console.log('📦 FormData inicial do novo usuário:', initialFormData);
+
+      setFormData(initialFormData);
     }
     setIsDialogOpen(true);
   }
@@ -221,67 +241,54 @@ export default function Users() {
         // Recarregar lista de usuários para refletir mudanças
         await loadUsers();
       } else {
-        // Criar novo usuário
-        // Criar no Supabase Auth com metadata
-        const { data: authData, error: authError } = await supabase.auth.signUp({
+        // Criar novo usuário com email já confirmado
+        console.log('🆕 Criando novo usuário com email auto-confirmado...');
+        
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
           email: formData.email,
           password: formData.password,
-          options: {
-            data: {
-              name: formData.name,
-              role: formData.role,
-              barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
-            }
+          email_confirm: true,  // ← CONFIRMA EMAIL AUTOMATICAMENTE
+          user_metadata: {
+            name: formData.name,
+            role: formData.role
           }
         });
 
-        if (authError) throw authError;
-
-        // Confirmar email automaticamente usando Edge Function
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          const response = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-user-email`,
-            {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${session?.access_token}`,
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ userId: authData.user.id }),
-            }
-          );
-
-          if (!response.ok) {
-            console.warn('Aviso: Não foi possível confirmar email automaticamente');
-          }
-        } catch (confirmError) {
-          console.warn('Aviso ao confirmar email:', confirmError);
-          // Não bloquear a criação do usuário se a confirmação falhar
+        if (authError) {
+          console.error('❌ Erro ao criar usuário:', authError);
+          throw authError;
         }
 
-        // O trigger handle_new_user() cria automaticamente o registro na tabela users
-        // Aguardar um momento para o trigger executar
-        await new Promise(resolve => setTimeout(resolve, 500));
+        console.log('✅ Usuário criado com sucesso:', authData.user.id);
+        console.log('📧 Email confirmado automaticamente!');
 
-        // Atualizar campos adicionais se necessário (barraca_id)
-        if (formData.role === ROLES.BARRACA && formData.barraca_id) {
-          const { error: updateError } = await supabase
-            .from('users')
-            .update({
-              barraca_id: formData.barraca_id
-            })
-            .eq('id', authData.user.id);
+        // Inserir na tabela users
+        const { error: dbError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            name: formData.name,
+            email: formData.email,
+            role: formData.role,
+            barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
+            active: true
+          });
 
-          if (updateError) {
-            console.warn('Aviso ao atualizar barraca_id:', updateError);
-          }
+        if (dbError) {
+          console.error('❌ Erro ao inserir na tabela users:', dbError);
+          toast({
+            title: 'Erro',
+            description: 'Erro ao salvar dados do usuário',
+            variant: 'destructive',
+          });
+          return;
         }
+
+        console.log('✅ Dados do usuário salvos na tabela users');
 
         toast({
           title: 'Sucesso',
-          description: 'Usuário criado com sucesso. Email confirmado automaticamente.',
+          description: 'Usuário criado com sucesso! Email já confirmado.',
         });
       }
 
@@ -420,7 +427,12 @@ export default function Users() {
                 <Label htmlFor="role">Perfil *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value, barraca_id: '' })}
+                  onValueChange={(value) => {
+                    const updatedFormData = { ...formData, role: value, barraca_id: null };
+                    console.log('👤 Perfil alterado:', value);
+                    console.log('📦 FormData após alterar perfil:', updatedFormData);
+                    setFormData(updatedFormData);
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -437,8 +449,21 @@ export default function Users() {
                 <div className="space-y-2">
                   <Label htmlFor="barraca">Barraca *</Label>
                   <Select
-                    value={formData.barraca_id}
-                    onValueChange={(value) => setFormData({ ...formData, barraca_id: value })}
+                    value={formData.barraca_id?.toString() || ''}
+                    onValueChange={(value) => {
+                      console.log('🎯 Barraca selecionada:', value, 'tipo:', typeof value);
+
+                      const newBarracaId = value ? parseInt(value, 10) : null;
+                      console.log('🔢 barraca_id convertido:', newBarracaId, 'tipo:', typeof newBarracaId);
+
+                      const newFormData = {
+                        ...formData,
+                        barraca_id: newBarracaId,
+                      };
+
+                      console.log('📝 FormData atualizado após seleção da barraca:', newFormData);
+                      setFormData(newFormData);
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder={barracas.length === 0 ? "Nenhuma barraca ativa" : "Selecione uma barraca"} />
@@ -453,7 +478,7 @@ export default function Users() {
                         </div>
                       ) : (
                         barracas.map((barraca) => (
-                          <SelectItem key={barraca.id} value={barraca.id}>
+                          <SelectItem key={barraca.id} value={barraca.id.toString()}>
                             {barraca.name}
                           </SelectItem>
                         ))
