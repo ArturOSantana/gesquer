@@ -114,7 +114,7 @@ export function useCardBinding() {
           client:clients(*),
           batch:card_batches(*)
         `)
-        .eq('id', result.card_id)
+        .eq('id', result.result_card_id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -180,7 +180,7 @@ export function useCardBinding() {
           *,
           client:clients(*)
         `)
-        .eq('id', result.old_card_id)
+        .eq('id', result.result_old_card_id)
         .single();
 
       if (oldCardError) throw oldCardError;
@@ -191,7 +191,7 @@ export function useCardBinding() {
           *,
           client:clients(*)
         `)
-        .eq('id', result.new_card_id)
+        .eq('id', result.result_new_card_id)
         .single();
 
       if (newCardError) throw newCardError;
@@ -200,7 +200,7 @@ export function useCardBinding() {
         success: true,
         oldCard,
         newCard,
-        transferredAmount: result.transferred_amount,
+        transferredAmount: result.result_transferred_amount,
         message: result.message,
         error: null
       };

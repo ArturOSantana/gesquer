@@ -879,8 +879,8 @@ CREATE OR REPLACE FUNCTION bind_card_to_client(
     p_client_phone VARCHAR(20)
 )
 RETURNS TABLE(
-    card_id BIGINT,
-    client_id BIGINT,
+    result_card_id BIGINT,
+    result_client_id BIGINT,
     success BOOLEAN,
     message TEXT
 ) AS $$
@@ -891,15 +891,21 @@ DECLARE
     v_client_id BIGINT;
     v_existing_client_id BIGINT;
 BEGIN
-    -- Valida nome do cliente
+    -- Valida nome do cliente (obrigatório)
     IF p_client_name IS NULL OR LENGTH(TRIM(p_client_name)) < 3 THEN
         RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, false,
             'Nome do cliente deve ter pelo menos 3 caracteres'::TEXT;
         RETURN;
     END IF;
     
-    -- Valida telefone (formato brasileiro)
-    IF p_client_phone IS NOT NULL AND p_client_phone !~ '^\(\d{2}\) \d{4,5}-\d{4}$' THEN
+    -- Valida telefone (obrigatório e formato brasileiro)
+    IF p_client_phone IS NULL OR LENGTH(TRIM(p_client_phone)) = 0 THEN
+        RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, false,
+            'Telefone é obrigatório'::TEXT;
+        RETURN;
+    END IF;
+    
+    IF p_client_phone !~ '^\(\d{2}\) \d{4,5}-\d{4}$' THEN
         RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, false,
             'Telefone inválido. Use formato: (11) 98765-4321'::TEXT;
         RETURN;
@@ -932,16 +938,15 @@ BEGIN
         RETURN;
     END IF;
     
-    -- Verifica se já existe cliente com este telefone
-    IF p_client_phone IS NOT NULL THEN
-        SELECT id INTO v_existing_client_id
-        FROM clients
-        WHERE phone = p_client_phone;
-        
-        IF v_existing_client_id IS NOT NULL THEN
-            -- Cliente já existe, usa o existente
-            v_client_id := v_existing_client_id;
-        END IF;
+    -- Verifica se já existe cliente com este telefone (telefone pode repetir)
+    SELECT id INTO v_existing_client_id
+    FROM clients
+    WHERE phone = p_client_phone
+    LIMIT 1;
+    
+    IF v_existing_client_id IS NOT NULL THEN
+        -- Cliente já existe, usa o existente
+        v_client_id := v_existing_client_id;
     END IF;
     
     -- Se cliente não existe, cria novo
@@ -979,9 +984,9 @@ CREATE OR REPLACE FUNCTION transfer_card_balance(
     p_description TEXT DEFAULT 'Transferência por substituição de cartão'
 )
 RETURNS TABLE(
-    old_card_id BIGINT,
-    new_card_id BIGINT,
-    transferred_amount DECIMAL(10, 2),
+    result_old_card_id BIGINT,
+    result_new_card_id BIGINT,
+    result_transferred_amount DECIMAL(10, 2),
     success BOOLEAN,
     message TEXT
 ) AS $$

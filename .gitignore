@@ -31,3 +31,8 @@ dist-ssr
 .env.test.local
 
 # Made with Bob
+
+# Database SQL files
+database/*.sql
+database/**/*.sql
+*.sql

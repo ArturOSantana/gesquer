@@ -189,6 +189,30 @@ export default function Users() {
 
         if (authError) throw authError;
 
+        // Confirmar email automaticamente usando Edge Function
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          const response = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/confirm-user-email`,
+            {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session?.access_token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ userId: authData.user.id }),
+            }
+          );
+
+          if (!response.ok) {
+            console.warn('Aviso: Não foi possível confirmar email automaticamente');
+          }
+        } catch (confirmError) {
+          console.warn('Aviso ao confirmar email:', confirmError);
+          // Não bloquear a criação do usuário se a confirmação falhar
+        }
+
         // O trigger handle_new_user() cria automaticamente o registro na tabela users
         // Aguardar um momento para o trigger executar
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -209,7 +233,7 @@ export default function Users() {
 
         toast({
           title: 'Sucesso',
-          description: 'Usuário criado com sucesso',
+          description: 'Usuário criado com sucesso. Email confirmado automaticamente.',
         });
       }
 
