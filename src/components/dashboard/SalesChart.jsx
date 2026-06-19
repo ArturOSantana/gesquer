@@ -13,10 +13,10 @@ export function SalesChart({ data, type = 'line', title, description }) {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-sm mb-1">{label}</p>
+        <div className="bg-white p-2 sm:p-3 border border-gray-200 rounded-lg shadow-lg max-w-[200px]">
+          <p className="font-semibold text-xs sm:text-sm mb-1 truncate">{label}</p>
           {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+            <p key={index} className="text-xs sm:text-sm truncate" style={{ color: entry.color }}>
               {entry.name}: {formatCurrency(entry.value)}
             </p>
           ))}
@@ -36,15 +36,17 @@ export function SalesChart({ data, type = 'line', title, description }) {
       return (
         <BarChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis 
-            dataKey="hour" 
-            tick={{ fontSize: 12 }}
+          <XAxis
+            dataKey="hour"
+            tick={{ fontSize: 10 }}
             stroke="#888"
+            interval="preserveStartEnd"
           />
-          <YAxis 
-            tick={{ fontSize: 12 }}
+          <YAxis
+            tick={{ fontSize: 10 }}
             stroke="#888"
             tickFormatter={formatCurrency}
+            width={60}
           />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
@@ -61,15 +63,17 @@ export function SalesChart({ data, type = 'line', title, description }) {
     return (
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-        <XAxis 
-          dataKey="hour" 
-          tick={{ fontSize: 12 }}
+        <XAxis
+          dataKey="hour"
+          tick={{ fontSize: 10 }}
           stroke="#888"
+          interval="preserveStartEnd"
         />
-        <YAxis 
-          tick={{ fontSize: 12 }}
+        <YAxis
+          tick={{ fontSize: 10 }}
           stroke="#888"
           tickFormatter={formatCurrency}
+          width={60}
         />
         <Tooltip content={<CustomTooltip />} />
         <Legend />
@@ -88,14 +92,14 @@ export function SalesChart({ data, type = 'line', title, description }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{title || 'Vendas por Hora'}</CardTitle>
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">{title || 'Vendas por Hora'}</CardTitle>
         {description && (
-          <CardDescription>{description}</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="h-[300px] w-full">
+      <CardContent className="px-2 sm:px-6">
+        <div className="h-[250px] sm:h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             {renderChart()}
           </ResponsiveContainer>

@@ -69,21 +69,21 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md px-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
+      <div className="w-full max-w-md">
         {/* Logo e Título */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+        <div className="mb-6 sm:mb-8 text-center">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
             QuermesseOn
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             Sistema de Gestão de Quermesse
           </p>
         </div>
 
         {/* Card de Login */}
-        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8">
-          <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 sm:p-8">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {error && (
               <Alert variant="destructive" className="rounded-md">
                 <AlertCircle className="h-4 w-4" />
@@ -92,7 +92,7 @@ export default function Login() {
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="email" className="text-xs sm:text-sm font-medium text-gray-700">
                 Email
               </Label>
               <Input
@@ -103,12 +103,12 @@ export default function Login() {
                 disabled={isLoading}
                 autoComplete="email"
                 autoFocus
-                className="h-11 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className="h-10 sm:h-11 text-sm sm:text-base rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <Label htmlFor="password" className="text-xs sm:text-sm font-medium text-gray-700">
                 Senha
               </Label>
               <Input
@@ -118,13 +118,13 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 autoComplete="current-password"
-                className="h-11 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className="h-10 sm:h-11 text-sm sm:text-base rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
+              className="w-full min-h-[44px] h-10 sm:h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm sm:text-base rounded-md transition-colors"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -140,7 +140,7 @@ export default function Login() {
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-center">
+        <div className="mt-4 sm:mt-6 text-center px-4">
           <p className="text-xs text-gray-500">
             © 2024 QuermesseOn. Todos os direitos reservados.
           </p>

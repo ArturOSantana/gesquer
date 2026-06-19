@@ -52,25 +52,25 @@ export function QuickActions() {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Ações Rápidas</CardTitle>
-        <CardDescription>Acesso rápido às principais funcionalidades</CardDescription>
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">Ações Rápidas</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Acesso rápido às principais funcionalidades</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <CardContent className="px-4 sm:px-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           {actions.map((action, index) => (
             <Button
               key={index}
               variant="outline"
-              className="h-auto flex flex-col items-center gap-2 p-4 hover:shadow-md transition-all"
+              className="h-auto flex flex-col items-center gap-2 p-3 sm:p-4 hover:shadow-md transition-all min-h-[100px] sm:min-h-[120px]"
               onClick={() => navigate(action.path)}
             >
-              <div className={`w-12 h-12 rounded-full ${action.color} flex items-center justify-center text-2xl text-white shadow-lg`}>
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full ${action.color} flex items-center justify-center text-xl sm:text-2xl text-white shadow-lg flex-shrink-0`}>
                 {action.icon}
               </div>
-              <div className="text-center">
-                <div className="font-semibold text-sm">{action.title}</div>
-                <div className="text-xs text-muted-foreground">{action.description}</div>
+              <div className="text-center min-w-0 w-full">
+                <div className="font-semibold text-xs sm:text-sm truncate">{action.title}</div>
+                <div className="text-xs text-muted-foreground truncate hidden sm:block">{action.description}</div>
               </div>
             </Button>
           ))}

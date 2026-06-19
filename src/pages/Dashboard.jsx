@@ -21,11 +21,11 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 text-center">
-          <h2 className="text-xl font-bold text-destructive mb-2">Erro ao carregar visão geral</h2>
-          <p className="text-destructive/80 mb-4">{error}</p>
-          <Button onClick={refresh} variant="outline">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 sm:p-6 text-center">
+          <h2 className="text-lg sm:text-xl font-bold text-destructive mb-2">Erro ao carregar visão geral</h2>
+          <p className="text-sm sm:text-base text-destructive/80 mb-4">{error}</p>
+          <Button onClick={refresh} variant="outline" className="min-h-[44px]">
             Tentar Novamente
           </Button>
         </div>
@@ -35,11 +35,11 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Carregando visão geral...</p>
+            <div className="animate-spin rounded-full h-12 w-12 sm:h-16 sm:w-16 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-sm sm:text-base text-muted-foreground">Carregando visão geral...</p>
           </div>
         </div>
       </div>
@@ -47,22 +47,22 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-7xl">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Visão</h1>
-          <p className="text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Visão Geral</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Visão geral do sistema de gestão da quermesse
           </p>
         </div>
-        <Button onClick={refresh} variant="outline" size="sm">
+        <Button onClick={refresh} variant="outline" size="sm" className="min-h-[44px] w-full sm:w-auto">
           Atualizar
         </Button>
       </div>
 
       {/* Cards de Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8">
         <StatCard
           title="Total Arrecadado"
           value={statistics?.totalArrecadado || 0}
@@ -96,12 +96,12 @@ export default function Dashboard() {
       </div>
 
       {/* Ações Rápidas */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <QuickActions />
       </div>
 
       {/* Gráficos e Rankings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <SalesChart
           data={salesChart}
           type="bar"
@@ -112,7 +112,7 @@ export default function Dashboard() {
       </div>
 
       {/* Alertas e Transações */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <AlertsPanel data={alerts} />
         <RecentTransactions data={recentTransactions} />
       </div>

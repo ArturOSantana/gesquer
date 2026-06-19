@@ -60,13 +60,13 @@ export function AlertsPanel({ data }) {
   if (!data || data.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Alertas e Notificações</CardTitle>
-          <CardDescription>Avisos importantes do sistema</CardDescription>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-base sm:text-lg">Alertas e Notificações</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Avisos importantes do sistema</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           <div className="text-center py-8">
-            <p className="text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               Tudo certo! Nenhum alerta no momento.
             </p>
           </div>
@@ -77,32 +77,32 @@ export function AlertsPanel({ data }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Alertas e Notificações</span>
-          <Badge variant="outline" className="ml-2">
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <span className="text-base sm:text-lg">Alertas e Notificações</span>
+          <Badge variant="outline" className="self-start sm:self-auto">
             {data.length}
           </Badge>
         </CardTitle>
-        <CardDescription>Avisos importantes do sistema</CardDescription>
+        <CardDescription className="text-xs sm:text-sm">Avisos importantes do sistema</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3 max-h-[400px] overflow-y-auto">
+      <CardContent className="px-4 sm:px-6">
+        <div className="space-y-2 sm:space-y-3 max-h-[400px] overflow-y-auto">
           {data.map((alert, index) => (
-            <Alert 
-              key={index} 
+            <Alert
+              key={index}
               variant={getAlertVariant(alert.type)}
-              className={getAlertColor(alert.type)}
+              className={`${getAlertColor(alert.type)} p-3 sm:p-4`}
             >
-              <div className="flex items-start gap-3">
-                <div className="text-2xl mt-0.5">
+              <div className="flex items-start gap-2 sm:gap-3">
+                <div className="text-xl sm:text-2xl mt-0.5 flex-shrink-0">
                   {getAlertIcon(alert.type)}
                 </div>
-                <div className="flex-1">
-                  <AlertTitle className="text-sm font-semibold mb-1">
+                <div className="flex-1 min-w-0">
+                  <AlertTitle className="text-xs sm:text-sm font-semibold mb-1 break-words">
                     {alert.title}
                   </AlertTitle>
-                  <AlertDescription className="text-sm">
+                  <AlertDescription className="text-xs sm:text-sm break-words">
                     {alert.message}
                   </AlertDescription>
                   <div className="text-xs text-muted-foreground mt-2">

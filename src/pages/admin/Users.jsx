@@ -219,6 +219,16 @@ export default function Users() {
         console.log('📧 Email confirmado automaticamente!');
 
         // Inserir na tabela users usando supabaseAdmin para evitar erro de RLS
+        console.log('🔐 Usando supabaseAdmin para inserir na tabela users');
+        console.log('📦 Dados a inserir:', {
+          id: authData.user.id,
+          name: formData.name,
+          email: formData.email,
+          role: formData.role,
+          barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
+          active: true
+        });
+        
         const { error: dbError } = await supabaseAdmin
           .from('users')
           .insert({

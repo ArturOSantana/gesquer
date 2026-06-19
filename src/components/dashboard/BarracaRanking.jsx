@@ -38,12 +38,12 @@ export function BarracaRanking({ data }) {
   if (!data || data.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Ranking de Barracas</CardTitle>
-          <CardDescription>Top 5 barracas por faturamento</CardDescription>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-base sm:text-lg">Ranking de Barracas</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Top 5 barracas por faturamento</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+        <CardContent className="px-4 sm:px-6">
+          <div className="text-center py-8 text-sm text-muted-foreground">
             Nenhuma venda registrada ainda
           </div>
         </CardContent>
@@ -53,30 +53,30 @@ export function BarracaRanking({ data }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Ranking de Barracas</CardTitle>
-        <CardDescription>Top 5 barracas por faturamento</CardDescription>
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">Ranking de Barracas</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Top 5 barracas por faturamento</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="px-4 sm:px-6">
+        <div className="space-y-2 sm:space-y-3">
           {data.map((barraca, index) => (
             <div
               key={barraca.id}
-              className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all hover:shadow-md ${getPositionColor(index)}`}
+              className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg border-2 transition-all hover:shadow-md ${getPositionColor(index)}`}
             >
-              <div className="flex items-center gap-3 flex-1">
-                <div className="text-2xl font-bold min-w-[3rem] text-center">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="text-xl sm:text-2xl font-bold min-w-[2.5rem] sm:min-w-[3rem] text-center flex-shrink-0">
                   {getMedalEmoji(index)}
                 </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-sm">{barraca.name}</h4>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-xs sm:text-sm truncate">{barraca.name}</h4>
                   <p className="text-xs text-muted-foreground">
                     {barraca.count} {barraca.count === 1 ? 'venda' : 'vendas'}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="font-bold text-lg">
+              <div className="text-left sm:text-right flex-shrink-0">
+                <div className="font-bold text-base sm:text-lg">
                   {formatCurrency(barraca.total)}
                 </div>
                 <Badge variant="outline" className="text-xs mt-1">

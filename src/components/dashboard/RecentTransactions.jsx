@@ -70,12 +70,12 @@ export function RecentTransactions({ data }) {
   if (!data || data.length === 0) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Transações Recentes</CardTitle>
-          <CardDescription>Últimas 10 transações</CardDescription>
+        <CardHeader className="px-4 sm:px-6">
+          <CardTitle className="text-base sm:text-lg">Transações Recentes</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Últimas 10 transações</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+        <CardContent className="px-4 sm:px-6">
+          <div className="text-center py-8 text-sm text-muted-foreground">
             Nenhuma transação registrada ainda
           </div>
         </CardContent>
@@ -85,40 +85,40 @@ export function RecentTransactions({ data }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Transações Recentes</CardTitle>
-        <CardDescription>Últimas 10 transações</CardDescription>
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="text-base sm:text-lg">Transações Recentes</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Últimas 10 transações</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4 sm:px-6">
         <div className="space-y-2">
           {data.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 transition-colors"
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 p-3 rounded-lg border hover:bg-gray-50 transition-colors"
             >
-              <div className="flex items-center gap-3 flex-1">
-                <div className="text-2xl">
+              <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="text-xl sm:text-2xl flex-shrink-0">
                   {getTransactionIcon(transaction.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Badge 
-                      variant="outline" 
+                  <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-1">
+                    <Badge
+                      variant="outline"
                       className={`text-xs ${getTransactionColor(transaction.type)}`}
                     >
                       {getTransactionLabel(transaction.type)}
                     </Badge>
                     {transaction.barracas && (
-                      <span className="text-xs text-muted-foreground truncate">
+                      <span className="text-xs text-muted-foreground truncate max-w-[150px]">
                         {transaction.barracas.name}
                       </span>
                     )}
                   </div>
-                  <div className="text-sm">
-                    <span className="font-medium">
+                  <div className="text-xs sm:text-sm">
+                    <span className="font-medium break-words">
                       {transaction.cards?.client?.name || 'Cliente'}
                     </span>
-                    <span className="text-muted-foreground ml-2 text-xs">
+                    <span className="text-muted-foreground ml-2 text-xs hidden sm:inline">
                       {transaction.cards?.id ? `ID: ${String(transaction.cards.id).substring(0, 8)}...` : ''}
                     </span>
                   </div>
@@ -127,8 +127,8 @@ export function RecentTransactions({ data }) {
                   </div>
                 </div>
               </div>
-              <div className="text-right ml-4">
-                <div className={`font-bold ${
+              <div className="text-left sm:text-right sm:ml-4 flex-shrink-0">
+                <div className={`font-bold text-sm sm:text-base ${
                   transaction.type === 'sale' || transaction.type === 'refund'
                     ? 'text-green-600'
                     : 'text-blue-600'
