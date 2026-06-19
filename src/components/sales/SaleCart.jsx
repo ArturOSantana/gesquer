@@ -64,58 +64,60 @@ export function SaleCart({ items, onUpdateQuantity, onRemoveItem, onClear, onChe
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4">
         {items.map((item) => (
           <div
             key={item.product_id}
-            className="flex items-center gap-4 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+            className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
           >
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium truncate">{item.name}</h4>
-              <p className="text-sm text-muted-foreground">
+              <h4 className="font-medium truncate text-sm sm:text-base">{item.name}</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {formatCurrency(item.unit_price)} cada
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onUpdateQuantity(item.product_id, item.quantity - 1)}
-                disabled={item.quantity <= 1}
-              >
-                <Minus className="h-3 w-3" />
-              </Button>
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8"
+                  onClick={() => onUpdateQuantity(item.product_id, item.quantity - 1)}
+                  disabled={item.quantity <= 1}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
 
-              <Badge variant="secondary" className="min-w-[2.5rem] justify-center">
-                {item.quantity}
-              </Badge>
+                <Badge variant="secondary" className="min-w-[2rem] sm:min-w-[2.5rem] justify-center text-xs sm:text-sm">
+                  {item.quantity}
+                </Badge>
 
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => onUpdateQuantity(item.product_id, item.quantity + 1)}
-                disabled={item.quantity >= item.stock_quantity}
-              >
-                <Plus className="h-3 w-3" />
-              </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8"
+                  onClick={() => onUpdateQuantity(item.product_id, item.quantity + 1)}
+                  disabled={item.quantity >= item.stock_quantity}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => onRemoveItem(item.product_id)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 sm:h-8 sm:w-8 text-destructive hover:text-destructive"
+                  onClick={() => onRemoveItem(item.product_id)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
+              </div>
 
-            <div className="text-right min-w-[5rem]">
-              <p className="font-semibold">
-                {formatCurrency(item.quantity * item.unit_price)}
-              </p>
+              <div className="text-right min-w-[4rem] sm:min-w-[5rem]">
+                <p className="font-semibold text-sm sm:text-base">
+                  {formatCurrency(item.quantity * item.unit_price)}
+                </p>
+              </div>
             </div>
           </div>
         ))}
@@ -133,14 +135,14 @@ export function SaleCart({ items, onUpdateQuantity, onRemoveItem, onClear, onChe
         </div>
       </CardContent>
 
-      <CardFooter>
+      <CardFooter className="flex-col gap-2 sm:flex-row">
         <Button
           onClick={onCheckout}
-          className="w-full"
+          className="w-full text-sm sm:text-base"
           size="lg"
         >
           <ShoppingCart className="h-4 w-4 mr-2" />
-          Finalizar Venda - {formatCurrency(total)}
+          <span className="truncate">Finalizar - {formatCurrency(total)}</span>
         </Button>
       </CardFooter>
     </Card>

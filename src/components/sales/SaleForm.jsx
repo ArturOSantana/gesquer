@@ -113,17 +113,17 @@ export function SaleForm({ products, onAddToCart, cartItems }) {
                   <button
                     key={product.id}
                     onClick={() => handleSelectProduct(product)}
-                    className={`w-full text-left p-3 rounded-lg border transition-colors ${
+                    className={`w-full text-left p-2 sm:p-3 rounded-lg border transition-colors ${
                       selectedProduct?.id === product.id
                         ? 'bg-primary/10 border-primary'
                         : 'hover:bg-accent'
                     } ${availableStock === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={availableStock === 0}
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium truncate">{product.name}</h4>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-medium truncate text-sm sm:text-base">{product.name}</h4>
                           {isInCart && (
                             <Badge variant="secondary" className="text-xs">
                               No carrinho
@@ -131,13 +131,13 @@ export function SaleForm({ products, onAddToCart, cartItems }) {
                           )}
                         </div>
                         {product.description && (
-                          <p className="text-sm text-muted-foreground truncate">
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate">
                             {product.description}
                           </p>
                         )}
                       </div>
-                      <div className="text-right ml-4">
-                        <p className="font-semibold text-primary">
+                      <div className="text-left sm:text-right sm:ml-4 flex-shrink-0">
+                        <p className="font-semibold text-primary text-sm sm:text-base">
                           {formatCurrency(product.price)}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -154,17 +154,17 @@ export function SaleForm({ products, onAddToCart, cartItems }) {
 
         {/* Produto selecionado */}
         {selectedProduct && (
-          <div className="space-y-4 p-4 border rounded-lg bg-accent/50">
+          <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 border rounded-lg bg-accent/50">
             <div>
-              <h4 className="font-semibold">{selectedProduct.name}</h4>
-              <p className="text-sm text-muted-foreground">
+              <h4 className="font-semibold text-sm sm:text-base">{selectedProduct.name}</h4>
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 {formatCurrency(selectedProduct.price)} cada
               </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="quantity">Quantidade</Label>
-              <div className="flex gap-2">
+              <Label htmlFor="quantity" className="text-sm">Quantidade</Label>
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="quantity"
                   type="number"
@@ -172,9 +172,9 @@ export function SaleForm({ products, onAddToCart, cartItems }) {
                   max={getAvailableStock(selectedProduct)}
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                  className="flex-1"
+                  className="flex-1 text-sm sm:text-base"
                 />
-                <Button onClick={handleAddToCart} className="min-w-[120px]">
+                <Button onClick={handleAddToCart} className="w-full sm:w-auto sm:min-w-[120px] text-sm sm:text-base">
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar
                 </Button>
@@ -186,8 +186,8 @@ export function SaleForm({ products, onAddToCart, cartItems }) {
 
             <div className="pt-2 border-t">
               <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Subtotal:</span>
-                <span className="text-lg font-bold text-primary">
+                <span className="text-xs sm:text-sm text-muted-foreground">Subtotal:</span>
+                <span className="text-base sm:text-lg font-bold text-primary">
                   {formatCurrency(selectedProduct.price * quantity)}
                 </span>
               </div>

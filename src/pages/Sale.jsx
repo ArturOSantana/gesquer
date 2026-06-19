@@ -286,56 +286,54 @@ export default function Sale() {
   const total = cartItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <ShoppingCart className="h-8 w-8 text-primary" />
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 flex-shrink-0">
+          <ShoppingCart className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Realizar Venda</h1>
+          <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+            Sistema de vendas com cartão pré-pago
+          </p>
+        </div>
+      </div>
+
+      {/* Progresso - Mobile Friendly */}
+      <Card>
+        <CardContent className="pt-4 sm:pt-6">
+          <div className="flex items-center justify-between overflow-x-auto pb-2">
+            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'select-barraca' ? 'text-primary' : step !== 'select-barraca' ? 'text-green-600' : 'text-muted-foreground'}`}>
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'select-barraca' ? 'bg-primary text-primary-foreground' : step !== 'select-barraca' ? 'bg-green-600 text-white' : 'bg-muted'}`}>
+                1
+              </div>
+              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Barraca</span>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Realizar Venda</h1>
-              <p className="text-muted-foreground">
-                Sistema de vendas com cartão pré-pago
-              </p>
+            <div className="flex-1 h-0.5 bg-muted mx-1 sm:mx-2 min-w-[20px]" />
+            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'scan-card' ? 'text-primary' : ['add-items', 'confirm', 'receipt'].includes(step) ? 'text-green-600' : 'text-muted-foreground'}`}>
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'scan-card' ? 'bg-primary text-primary-foreground' : ['add-items', 'confirm', 'receipt'].includes(step) ? 'bg-green-600 text-white' : 'bg-muted'}`}>
+                2
+              </div>
+              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Cartão</span>
+            </div>
+            <div className="flex-1 h-0.5 bg-muted mx-1 sm:mx-2 min-w-[20px]" />
+            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'add-items' ? 'text-primary' : ['confirm', 'receipt'].includes(step) ? 'text-green-600' : 'text-muted-foreground'}`}>
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'add-items' ? 'bg-primary text-primary-foreground' : ['confirm', 'receipt'].includes(step) ? 'bg-green-600 text-white' : 'bg-muted'}`}>
+                3
+              </div>
+              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Produtos</span>
+            </div>
+            <div className="flex-1 h-0.5 bg-muted mx-1 sm:mx-2 min-w-[20px]" />
+            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'confirm' ? 'text-primary' : step === 'receipt' ? 'text-green-600' : 'text-muted-foreground'}`}>
+              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'confirm' ? 'bg-primary text-primary-foreground' : step === 'receipt' ? 'bg-green-600 text-white' : 'bg-muted'}`}>
+                4
+              </div>
+              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Confirmar</span>
             </div>
           </div>
-        </div>
-
-        {/* Progresso */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className={`flex items-center gap-2 ${step === 'select-barraca' ? 'text-primary' : step !== 'select-barraca' ? 'text-green-600' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'select-barraca' ? 'bg-primary text-primary-foreground' : step !== 'select-barraca' ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                  1
-                </div>
-                <span className="font-medium">Barraca</span>
-              </div>
-              <div className="flex-1 h-0.5 bg-muted mx-2" />
-              <div className={`flex items-center gap-2 ${step === 'scan-card' ? 'text-primary' : ['add-items', 'confirm', 'receipt'].includes(step) ? 'text-green-600' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'scan-card' ? 'bg-primary text-primary-foreground' : ['add-items', 'confirm', 'receipt'].includes(step) ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                  2
-                </div>
-                <span className="font-medium">Cartão</span>
-              </div>
-              <div className="flex-1 h-0.5 bg-muted mx-2" />
-              <div className={`flex items-center gap-2 ${step === 'add-items' ? 'text-primary' : ['confirm', 'receipt'].includes(step) ? 'text-green-600' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'add-items' ? 'bg-primary text-primary-foreground' : ['confirm', 'receipt'].includes(step) ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                  3
-                </div>
-                <span className="font-medium">Produtos</span>
-              </div>
-              <div className="flex-1 h-0.5 bg-muted mx-2" />
-              <div className={`flex items-center gap-2 ${step === 'confirm' ? 'text-primary' : step === 'receipt' ? 'text-green-600' : 'text-muted-foreground'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'confirm' ? 'bg-primary text-primary-foreground' : step === 'receipt' ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                  4
-                </div>
-                <span className="font-medium">Confirmar</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </CardContent>
+      </Card>
 
         {/* Conteúdo baseado no step */}
         {step === 'select-barraca' && (
@@ -394,7 +392,7 @@ export default function Sale() {
         )}
 
         {step === 'scan-card' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -444,8 +442,8 @@ export default function Sale() {
         )}
 
         {step === 'add-items' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div className="space-y-4 sm:space-y-6">
               <Card>
                 <CardContent className="pt-6">
                   <div className="space-y-1">
@@ -505,7 +503,7 @@ export default function Sale() {
         )}
 
         {step === 'confirm' && (
-          <div className="max-w-2xl mx-auto">
+          <div className="w-full max-w-2xl mx-auto">
             <SaleConfirmation
               card={scannedCard}
               barraca={selectedBarraca}
@@ -520,7 +518,7 @@ export default function Sale() {
         )}
 
         {step === 'receipt' && saleResult && (
-          <div className="max-w-2xl mx-auto">
+          <div className="w-full max-w-2xl mx-auto">
             <SaleReceipt
               sale={{ id: saleResult.sale_id, created_at: new Date() }}
               card={scannedCard}
