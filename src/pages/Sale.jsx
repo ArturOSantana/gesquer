@@ -42,9 +42,17 @@ export default function Sale() {
 
   // Define barraca fixa para operador de barraca
   useEffect(() => {
+    console.log('Sale.jsx - useEffect barraca:', {
+      isBarraca,
+      profile,
+      barraca_id: profile?.barraca_id,
+      barracas_count: barracas.length
+    });
+
     if (!isBarraca) return;
 
     if (!profile?.barraca_id) {
+      console.log('Sale.jsx - Operador de barraca sem barraca_id no profile');
       setSelectedBarraca(null);
       setStep('select-barraca');
       return;
@@ -54,6 +62,7 @@ export default function Sale() {
       (barraca) => barraca.id === profile.barraca_id
     );
 
+    console.log('Sale.jsx - Barraca encontrada:', barracaDoOperador);
     setSelectedBarraca(barracaDoOperador || null);
     setStep(barracaDoOperador ? 'scan-card' : 'select-barraca');
   }, [isBarraca, profile?.barraca_id, barracas]);

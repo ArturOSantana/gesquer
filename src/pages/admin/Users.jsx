@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
+import { useBarracas } from '../../hooks/useBarracas';
 import { useToast } from '../../hooks/use-toast';
+import { Spinner } from '../../components/ui/Spinner';
 
 // Cliente admin para operações privilegiadas (confirmação automática de email)
 const supabaseAdmin = createClient(
@@ -22,7 +24,6 @@ import { ROLES, getRoleLabel, getRoleBadgeColor } from '../../lib/permissions';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
-  const [barracas, setBarracas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
@@ -38,11 +39,18 @@ export default function Users() {
 
   const { toast } = useToast();
   const { profile } = useAuth();
+  
+  // Hook de barracas com cache e loading
+  const {
+    barracas,
+    loading: loadingBarracas,
+    error: errorBarracas,
+    invalidateCache
+  } = useBarracas();
 
   useEffect(() => {
-    console.log('🚀 useEffect executado - carregando usuários e barracas');
+    console.log('🚀 useEffect executado - carregando usuários');
     loadUsers();
-    loadBarracas();
   }, []);
 
   async function loadUsers() {
@@ -73,64 +81,6 @@ export default function Users() {
     }
   }
 
-  async function loadBarracas() {
-    try {
-      console.log('🔍 Carregando barracas...');
-      
-      // Buscar todas as colunas para descobrir o schema
-      const { data, error } = await supabase
-        .from('barracas')
-        .select('*')
-        .order('name');
-
-      console.log('📊 Resposta da query:', { data, error });
-
-      if (error) {
-        console.error('❌ Erro na query:', error);
-        throw error;
-      }
-
-      // Mostrar colunas disponíveis para debug
-      if (data && data.length > 0) {
-        console.log('📋 Colunas disponíveis na tabela barracas:', Object.keys(data[0]));
-      }
-
-      // Filtrar barracas ativas - tentar diferentes nomes de coluna
-      const barracasAtivas = (data || []).filter(b => {
-        // Tentar diferentes nomes de coluna de status
-        if ('ativa' in b) {
-          console.log(`Barraca ${b.name}: ativa = ${b.ativa}`);
-          return b.ativa === true;
-        }
-        if ('is_active' in b) {
-          console.log(`Barraca ${b.name}: is_active = ${b.is_active}`);
-          return b.is_active === true;
-        }
-        if ('active' in b) {
-          console.log(`Barraca ${b.name}: active = ${b.active}`);
-          return b.active === true;
-        }
-        // Se não tem coluna de status, considerar todas ativas
-        console.log(`Barraca ${b.name}: sem coluna de status, considerando ativa`);
-        return true;
-      });
-      
-      console.log('✅ Barracas ativas encontradas:', barracasAtivas.length, barracasAtivas);
-      
-      setBarracas(barracasAtivas);
-      
-      if (barracasAtivas.length === 0) {
-        console.warn('⚠️ Nenhuma barraca ativa encontrada no banco de dados');
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar barracas:', error);
-      toast({
-        title: 'Aviso',
-        description: 'Não foi possível carregar as barracas. Verifique se existem barracas ativas cadastradas.',
-        variant: 'destructive',
-      });
-    }
-  }
 
   function handleOpenDialog(user = null) {
     if (user) {
@@ -296,6 +246,11 @@ export default function Users() {
           title: 'Sucesso',
           description: 'Usuário criado com sucesso! Email já confirmado.',
         });
+        
+        // Invalida cache de barracas se criou um operador de barraca
+        if (formData.role === ROLES.BARRACA) {
+          invalidateCache();
+        }
       }
 
       setIsDialogOpen(false);
@@ -454,44 +409,71 @@ export default function Users() {
               {formData.role === ROLES.BARRACA && (
                 <div className="space-y-2">
                   <Label htmlFor="barraca">Barraca *</Label>
-                  <Select
-                    value={formData.barraca_id?.toString() || ''}
-                    onValueChange={(value) => {
-                      console.log('🎯 Barraca selecionada:', value, 'tipo:', typeof value);
+                  
+                  {/* Indicador de loading */}
+                  {loadingBarracas && (
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                      <Spinner size="sm" />
+                      <span className="text-sm text-blue-700">Carregando barracas...</span>
+                    </div>
+                  )}
+                  
+                  {/* Erro ao carregar */}
+                  {errorBarracas && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-sm text-red-700">Erro ao carregar barracas: {errorBarracas}</p>
+                    </div>
+                  )}
+                  
+                  {/* Select de barracas */}
+                  {!loadingBarracas && !errorBarracas && (
+                    <Select
+                      value={formData.barraca_id?.toString() || ''}
+                      onValueChange={(value) => {
+                        console.log('🎯 Barraca selecionada:', value, 'tipo:', typeof value);
 
-                      const newBarracaId = value ? parseInt(value, 10) : null;
-                      console.log('🔢 barraca_id convertido:', newBarracaId, 'tipo:', typeof newBarracaId);
+                        const newBarracaId = value ? parseInt(value, 10) : null;
+                        console.log('🔢 barraca_id convertido:', newBarracaId, 'tipo:', typeof newBarracaId);
 
-                      const newFormData = {
-                        ...formData,
-                        barraca_id: newBarracaId,
-                      };
+                        const newFormData = {
+                          ...formData,
+                          barraca_id: newBarracaId,
+                        };
 
-                      console.log('📝 FormData atualizado após seleção da barraca:', newFormData);
-                      setFormData(newFormData);
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={barracas.length === 0 ? "Nenhuma barraca ativa" : "Selecione uma barraca"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {barracas.length === 0 ? (
-                        <div className="p-4 text-sm text-center">
-                          <p className="text-muted-foreground mb-2">Nenhuma barraca ativa encontrada</p>
-                          <p className="text-xs text-gray-500">
-                            Cadastre barracas ativas antes de criar usuários do tipo Operador de Barraca
-                          </p>
-                        </div>
-                      ) : (
-                        barracas.map((barraca) => (
-                          <SelectItem key={barraca.id} value={barraca.id.toString()}>
-                            {barraca.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {barracas.length === 0 && (
+                        console.log('📝 FormData atualizado após seleção da barraca:', newFormData);
+                        setFormData(newFormData);
+                      }}
+                      disabled={loadingBarracas}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          loadingBarracas
+                            ? "Carregando..."
+                            : barracas.length === 0
+                              ? "Nenhuma barraca ativa"
+                              : "Selecione uma barraca"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {barracas.length === 0 ? (
+                          <div className="p-4 text-sm text-center">
+                            <p className="text-muted-foreground mb-2">Nenhuma barraca ativa encontrada</p>
+                            <p className="text-xs text-gray-500">
+                              Cadastre barracas ativas antes de criar usuários do tipo Operador de Barraca
+                            </p>
+                          </div>
+                        ) : (
+                          barracas.map((barraca) => (
+                            <SelectItem key={barraca.id} value={barraca.id.toString()}>
+                              {barraca.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  
+                  {!loadingBarracas && barracas.length === 0 && (
                     <p className="text-xs text-amber-600 mt-1">
                       ⚠️ Você precisa ter pelo menos uma barraca ativa para criar este tipo de usuário
                     </p>

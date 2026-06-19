@@ -1,20 +1,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
+// Cache global simples (fora do componente para persistir entre montagens)
+let barracasCache = null;
+let cacheTimestamp = null;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+
 /**
  * Hook para gerenciar barracas
  * Fornece funções para CRUD completo de barracas
+ * Inclui sistema de cache para melhorar performance
  */
 export function useBarracas() {
   const [barracas, setBarracas] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   /**
-   * Busca todas as barracas
+   * Busca todas as barracas com suporte a cache
    */
-  const fetchBarracas = useCallback(async (filters = {}) => {
+  const fetchBarracas = useCallback(async (filters = {}, forceRefresh = false) => {
     try {
+      // Verificar cache apenas se não houver filtros e não for refresh forçado
+      const now = Date.now();
+      const hasFilters = Object.keys(filters).length > 0;
+      
+      if (!forceRefresh && !hasFilters && barracasCache && cacheTimestamp && (now - cacheTimestamp < CACHE_DURATION)) {
+        console.log('📦 Usando cache de barracas');
+        setBarracas(barracasCache);
+        setLoading(false);
+        return { data: barracasCache, error: null };
+      }
+
+      console.log('🔄 Carregando barracas do banco de dados...');
       setLoading(true);
       setError(null);
 
@@ -35,6 +53,13 @@ export function useBarracas() {
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError;
+
+      // Atualizar cache apenas se não houver filtros
+      if (!hasFilters) {
+        barracasCache = data || [];
+        cacheTimestamp = now;
+        console.log('✅ Cache de barracas atualizado');
+      }
 
       setBarracas(data || []);
       return { data, error: null };
@@ -81,6 +106,16 @@ export function useBarracas() {
   }, []);
 
   /**
+   * Invalida o cache e força recarregamento
+   */
+  const invalidateCache = useCallback(() => {
+    console.log('🗑️ Invalidando cache de barracas');
+    barracasCache = null;
+    cacheTimestamp = null;
+    return fetchBarracas({}, true);
+  }, [fetchBarracas]);
+
+  /**
    * Cria uma nova barraca
    */
   const createBarraca = useCallback(async (barracaData) => {
@@ -106,8 +141,8 @@ export function useBarracas() {
 
       if (insertError) throw insertError;
 
-      // Atualiza lista de barracas
-      await fetchBarracas();
+      // Invalida cache e atualiza lista de barracas
+      await invalidateCache();
 
       return { data, error: null };
     } catch (err) {
@@ -117,7 +152,7 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, [fetchBarracas]);
+  }, [invalidateCache]);
 
   /**
    * Atualiza uma barraca existente
@@ -155,8 +190,8 @@ export function useBarracas() {
 
       if (updateError) throw updateError;
 
-      // Atualiza lista de barracas
-      await fetchBarracas();
+      // Invalida cache e atualiza lista de barracas
+      await invalidateCache();
 
       return { data, error: null };
     } catch (err) {
@@ -166,7 +201,7 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, [fetchBarracas]);
+  }, [invalidateCache]);
 
   /**
    * Deleta uma barraca
@@ -205,8 +240,8 @@ export function useBarracas() {
 
       if (deleteError) throw deleteError;
 
-      // Atualiza lista de barracas
-      await fetchBarracas();
+      // Invalida cache e atualiza lista de barracas
+      await invalidateCache();
 
       return { success: true, error: null };
     } catch (err) {
@@ -216,7 +251,7 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, [fetchBarracas]);
+  }, [invalidateCache]);
 
   /**
    * Ativa ou desativa uma barraca
@@ -384,7 +419,11 @@ export function useBarracas() {
     // Funções relacionadas
     getBarracaStats,
     getBarracaProducts,
-    getBarracaSales
+    getBarracaSales,
+
+    // Cache
+    invalidateCache,
+    reload: invalidateCache
   };
 }
 

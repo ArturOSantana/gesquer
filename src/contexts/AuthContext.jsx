@@ -78,6 +78,8 @@ export function AuthProvider({ children }) {
       }
 
       console.log('Dados do perfil recebidos:', data);
+      console.log('barraca_id no perfil:', data.barraca_id);
+      console.log('Tipo de barraca_id:', typeof data.barraca_id);
 
       if (!data.active) {
         console.warn('Usuário inativo');
@@ -85,7 +87,12 @@ export function AuthProvider({ children }) {
       }
 
       setProfile(data);
-      console.log('Perfil definido no estado');
+      console.log('Perfil definido no estado:', {
+        id: data.id,
+        name: data.name,
+        role: data.role,
+        barraca_id: data.barraca_id
+      });
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
       toast({
