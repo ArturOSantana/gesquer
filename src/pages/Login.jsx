@@ -46,16 +46,22 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      console.log('🔐 Iniciando login...');
       const result = await login(email, password);
 
+      console.log('📊 Resultado do login:', result);
+
       if (result.success) {
-        // Redireciona para a rota apropriada
-        navigate(getInitialRoute());
+        console.log('✅ Login bem-sucedido, obtendo rota inicial...');
+        const initialRoute = getInitialRoute();
+        console.log('🚀 Redirecionando para:', initialRoute);
+        navigate(initialRoute);
       } else {
+        console.error('❌ Login falhou:', result.error);
         setError(result.error || 'Erro ao fazer login');
       }
     } catch (err) {
-      console.error('Erro no login:', err);
+      console.error('❌ Erro no login:', err);
       setError('Erro ao fazer login. Tente novamente.');
     } finally {
       setIsLoading(false);

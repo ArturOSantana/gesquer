@@ -53,6 +53,8 @@ export function AuthProvider({ children }) {
   // Carrega perfil do usuário
   async function loadUserProfile(userId) {
     try {
+      console.log('🔍 Carregando perfil do usuário:', userId);
+      
       const { data, error } = await supabase
         .from('users')
         .select(`
@@ -70,21 +72,29 @@ export function AuthProvider({ children }) {
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erro na query do perfil:', error);
+        throw error;
+      }
+
+      console.log('📋 Dados do perfil recebidos:', data);
 
       if (!data.active) {
+        console.warn('⚠️ Usuário inativo');
         throw new Error('Usuário inativo');
       }
 
       setProfile(data);
+      console.log('✅ Perfil definido no estado');
     } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
+      console.error('❌ Erro ao carregar perfil:', error);
       toast({
         title: 'Erro',
         description: error.message || 'Erro ao carregar perfil do usuário',
         variant: 'destructive',
       });
       await logout();
+      throw error; // Re-throw para que o login saiba que falhou
     }
   }
 
@@ -101,8 +111,15 @@ export function AuthProvider({ children }) {
 
       if (authError) throw authError;
 
-      // Carrega perfil do usuário
+      console.log('✅ Autenticação bem-sucedida, carregando perfil...');
+      
+      // Define o usuário imediatamente
+      setUser(authData.user);
+
+      // Carrega perfil do usuário e aguarda completar
       await loadUserProfile(authData.user.id);
+
+      console.log('✅ Perfil carregado com sucesso');
 
       toast({
         title: 'Sucesso',
@@ -111,7 +128,7 @@ export function AuthProvider({ children }) {
 
       return { success: true, user: authData.user };
     } catch (error) {
-      console.error('Erro no login:', error);
+      console.error('❌ Erro no login:', error);
       
       let errorMessage = 'Erro ao fazer login';
       

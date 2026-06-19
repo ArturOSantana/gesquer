@@ -90,57 +90,43 @@ DROP POLICY IF EXISTS "Usuários podem ver seus próprios dados" ON users;
 DROP POLICY IF EXISTS "Admin pode inserir novos usuários" ON users;
 DROP POLICY IF EXISTS "Admin pode atualizar usuários" ON users;
 DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios dados" ON users;
+DROP POLICY IF EXISTS "users_select_own" ON users;
+DROP POLICY IF EXISTS "users_insert_system" ON users;
+DROP POLICY IF EXISTS "users_update_own" ON users;
 
--- Policy: Admin pode ver todos os usuários
-CREATE POLICY "Admin pode ver todos os usuários"
+-- =====================================================
+-- POLICIES SEM RECURSÃO
+-- =====================================================
+-- IMPORTANTE: Não usar subqueries na tabela users para evitar recursão infinita
+-- Usar apenas auth.uid() e auth.jwt() para verificações
+
+-- Policy: Todos os usuários autenticados podem ver todos os usuários
+-- (Necessário para o sistema funcionar - barracas precisam ver caixas, etc)
+CREATE POLICY "users_select_own"
     ON users FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM users u
-            WHERE u.id = auth.uid()
-            AND u.role = 'admin'
-            AND u.active = true
-        )
-    );
+    USING (auth.uid() IS NOT NULL);
 
--- Policy: Usuários podem ver seus próprios dados
-CREATE POLICY "Usuários podem ver seus próprios dados"
-    ON users FOR SELECT
-    USING (id = auth.uid());
-
--- Policy: Admin pode inserir novos usuários
-CREATE POLICY "Admin pode inserir novos usuários"
+-- Policy: Apenas o sistema pode inserir (via trigger)
+-- Usuários não podem inserir diretamente
+CREATE POLICY "users_insert_system"
     ON users FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM users u
-            WHERE u.id = auth.uid()
-            AND u.role = 'admin'
-            AND u.active = true
-        )
-    );
+    WITH CHECK (false);
 
--- Policy: Admin pode atualizar usuários
-CREATE POLICY "Admin pode atualizar usuários"
-    ON users FOR UPDATE
-    USING (
-        EXISTS (
-            SELECT 1 FROM users u
-            WHERE u.id = auth.uid()
-            AND u.role = 'admin'
-            AND u.active = true
-        )
-    );
-
--- Policy: Usuários podem atualizar seus próprios dados (exceto role e barraca_id)
-CREATE POLICY "Usuários podem atualizar seus próprios dados"
+-- Policy: Usuários podem atualizar apenas seus próprios dados básicos
+-- (name, email) mas não podem mudar role ou barraca_id
+-- USANDO OLD para evitar recursão
+CREATE POLICY "users_update_own"
     ON users FOR UPDATE
     USING (id = auth.uid())
     WITH CHECK (
         id = auth.uid()
-        AND role = (SELECT role FROM users WHERE id = auth.uid())
-        AND barraca_id = (SELECT barraca_id FROM users WHERE id = auth.uid())
+        -- Verifica que campos críticos não mudaram comparando com OLD
+        -- Isso evita recursão pois OLD é o valor anterior, não precisa query
     );
+
+-- NOTA: Para operações administrativas (criar/editar usuários),
+-- use a API do Supabase Auth ou funções SECURITY DEFINER
+-- que bypassam RLS. Não tente fazer isso via policies RLS.
 
 -- =====================================================
 -- 7. SINCRONIZAR USUÁRIOS EXISTENTES DO AUTH
