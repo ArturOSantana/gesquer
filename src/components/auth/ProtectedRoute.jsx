@@ -38,6 +38,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     console.log('⚠️ Sem permissão, redirecionando...');
     // Redireciona para a página inicial do perfil do usuário
     const redirectMap = {
+      superadmin: '/dashboard',
       admin: '/dashboard',
       caixa: '/caixa/novo-cliente',
       barraca: '/sale',

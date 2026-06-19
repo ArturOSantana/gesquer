@@ -17,10 +17,19 @@ export default function Header() {
   const getNavigation = () => {
     if (!profile) return []
 
-    // Menu para ADMIN - Simplificado e agrupado
-    if (profile.role === 'admin') {
+    // Menu para SUPERADMIN - Acesso completo com Admin
+    if (profile.role === 'superadmin') {
       return [
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        {
+          name: 'Caixa',
+          icon: Wallet,
+          dropdown: [
+            { name: 'Novo Cliente', href: '/caixa/novo-cliente', icon: UserPlus },
+            { name: 'Recarregar', href: '/caixa/recarga', icon: CreditCard },
+            { name: 'Transferir', href: '/caixa/transferir-cartao', icon: ArrowLeftRight },
+          ]
+        },
         {
           name: 'Gestão',
           icon: Store,
@@ -44,6 +53,39 @@ export default function Header() {
           dropdown: [
             { name: 'Usuários', href: '/admin/usuarios', icon: Users },
             { name: 'Gerar Lote', href: '/admin/gerar-lote', icon: Layers },
+          ]
+        },
+      ]
+    }
+
+    // Menu para ADMIN - Sem acesso a Admin (Usuários e Gerar Lote)
+    if (profile.role === 'admin') {
+      return [
+        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        {
+          name: 'Caixa',
+          icon: Wallet,
+          dropdown: [
+            { name: 'Novo Cliente', href: '/caixa/novo-cliente', icon: UserPlus },
+            { name: 'Recarregar', href: '/caixa/recarga', icon: CreditCard },
+            { name: 'Transferir', href: '/caixa/transferir-cartao', icon: ArrowLeftRight },
+          ]
+        },
+        {
+          name: 'Gestão',
+          icon: Store,
+          dropdown: [
+            { name: 'Barracas', href: '/barracas', icon: Store },
+            { name: 'Estoque', href: '/estoque', icon: Package },
+            { name: 'Cartões', href: '/cards', icon: CreditCard },
+          ]
+        },
+        {
+          name: 'Relatórios',
+          icon: BarChart3,
+          dropdown: [
+            { name: 'Histórico', href: '/historico', icon: History },
+            { name: 'Relatórios', href: '/relatorios', icon: BarChart3 },
           ]
         },
       ]

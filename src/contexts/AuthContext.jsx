@@ -183,8 +183,8 @@ export function AuthProvider({ children }) {
   function hasPermission(requiredRole) {
     if (!profile) return false;
 
-    // Admin tem acesso a tudo
-    if (profile.role === 'admin') return true;
+    // SuperAdmin e Admin têm acesso a tudo
+    if (profile.role === 'superadmin' || profile.role === 'admin') return true;
 
     // Verifica role específica
     if (Array.isArray(requiredRole)) {
@@ -198,8 +198,8 @@ export function AuthProvider({ children }) {
   function canAccessBarraca(barracaId) {
     if (!profile) return false;
 
-    // Admin pode acessar todas
-    if (profile.role === 'admin') return true;
+    // SuperAdmin e Admin podem acessar todas
+    if (profile.role === 'superadmin' || profile.role === 'admin') return true;
 
     // Barraca só pode acessar a sua própria
     if (profile.role === 'barraca') {
@@ -215,6 +215,8 @@ export function AuthProvider({ children }) {
     if (!profile) return '/login';
 
     switch (profile.role) {
+      case 'superadmin':
+        return '/dashboard';
       case 'admin':
         return '/dashboard';
       case 'caixa':
@@ -237,6 +239,7 @@ export function AuthProvider({ children }) {
     canAccessBarraca,
     getInitialRoute,
     isAuthenticated: !!user && !!profile,
+    isSuperAdmin: profile?.role === 'superadmin',
     isAdmin: profile?.role === 'admin',
     isCaixa: profile?.role === 'caixa',
     isBarraca: profile?.role === 'barraca',

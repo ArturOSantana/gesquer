@@ -43,51 +43,51 @@ function App() {
                 }
               />
 
-              {/* Dashboard - Admin e Caixa */}
+              {/* Dashboard - SuperAdmin, Admin e Caixa */}
               <Route
                 path="dashboard"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <Dashboard />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Escanear - Admin e Caixa */}
+              {/* Escanear - SuperAdmin, Admin e Caixa */}
               <Route
                 path="scan"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <ScanCard />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Venda - Admin e Barraca */}
+              {/* Venda - SuperAdmin, Admin e Barraca */}
               <Route
                 path="sale"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'barraca']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'barraca']}>
                     <Sale />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Estoque - Apenas Admin */}
+              {/* Estoque - Admin e SuperAdmin */}
               <Route
                 path="estoque"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                     <StockManagement />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Transferir Saldo - Admin e Caixa */}
+              {/* Transferir Saldo - SuperAdmin, Admin e Caixa */}
               <Route
                 path="transferir-saldo"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <TransferBalance />
                   </ProtectedRoute>
                 }
@@ -103,51 +103,51 @@ function App() {
                 }
               />
 
-              {/* Barracas - Apenas Admin */}
+              {/* Barracas - Admin e SuperAdmin */}
               <Route
                 path="barracas"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                     <BarracaManagement />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Cartões - Admin e Caixa */}
+              {/* Cartões - Admin, SuperAdmin e Caixa */}
               <Route
                 path="cards"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <CardManagement />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Relatórios - Apenas Admin */}
+              {/* Relatórios - Admin e SuperAdmin */}
               <Route
                 path="relatorios"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin']}>
                     <Reports />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Admin - Gerar Lote */}
+              {/* Admin - Gerar Lote - APENAS SUPERADMIN */}
               <Route
                 path="admin/gerar-lote"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['superadmin']}>
                     <GenerateBatch />
                   </ProtectedRoute>
                 }
               />
 
-              {/* Admin - Usuários */}
+              {/* Admin - Usuários - APENAS SUPERADMIN */}
               <Route
                 path="admin/usuarios"
                 element={
-                  <ProtectedRoute allowedRoles={['admin']}>
+                  <ProtectedRoute allowedRoles={['superadmin']}>
                     <Users />
                   </ProtectedRoute>
                 }
@@ -157,7 +157,7 @@ function App() {
               <Route
                 path="caixa/novo-cliente"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <NovoCliente />
                   </ProtectedRoute>
                 }
@@ -167,7 +167,7 @@ function App() {
               <Route
                 path="caixa/recarga"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <ScanCard />
                   </ProtectedRoute>
                 }
@@ -177,7 +177,7 @@ function App() {
               <Route
                 path="caixa/transferir-cartao"
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'caixa']}>
+                  <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <TransferirCartao />
                   </ProtectedRoute>
                 }

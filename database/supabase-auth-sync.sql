@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
-    role TEXT NOT NULL CHECK (role IN ('admin', 'caixa', 'barraca')),
+    role TEXT NOT NULL CHECK (role IN ('superadmin', 'admin', 'caixa', 'barraca')),
     barraca_id BIGINT REFERENCES barracas(id) ON DELETE SET NULL,
     active BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
