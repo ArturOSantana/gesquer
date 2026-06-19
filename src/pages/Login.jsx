@@ -72,7 +72,7 @@ export default function Login() {
               <LogIn className="w-8 h-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold">Sistema Quermesse</CardTitle>
+          <CardTitle className="text-2xl font-bold">QuermesseOn</CardTitle>
           <CardDescription>
             Entre com suas credenciais para acessar o sistema
           </CardDescription>
