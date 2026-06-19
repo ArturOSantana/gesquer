@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarracaSelector } from '@/components/barracas/BarracaSelector';
 import QrScanner from '@/components/qr/QrScanner';
 import { SaleForm } from '@/components/sales/SaleForm';
 import { SaleCart } from '@/components/sales/SaleCart';
@@ -8,13 +7,13 @@ import { SaleConfirmation } from '@/components/sales/SaleConfirmation';
 import { SaleReceipt } from '@/components/sales/SaleReceipt';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useBarracas } from '@/hooks/useBarracas';
 import { useProducts } from '@/hooks/useProducts';
 import { useCards } from '@/hooks/useCards';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useToast } from '@/hooks/use-toast';
-import { ShoppingCart, QrCode, AlertCircle, CreditCard } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { ShoppingCart, QrCode, AlertCircle, CreditCard, Store } from 'lucide-react';
 
 /**
  * Página de vendas
@@ -22,6 +21,7 @@ import { ShoppingCart, QrCode, AlertCircle, CreditCard } from 'lucide-react';
 export default function Sale() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { profile, isBarraca } = useAuth();
   
   // Hooks
   const { barracas, loading: barracasLoading } = useBarracas();
@@ -38,7 +38,25 @@ export default function Sale() {
   const [error, setError] = useState(null);
 
   // Hook de produtos (carrega quando barraca é selecionada)
-  const { products, loading: productsLoading } = useProducts(selectedBarraca?.id);
+  const { products } = useProducts(selectedBarraca?.id);
+
+  // Define barraca fixa para operador de barraca
+  useEffect(() => {
+    if (!isBarraca) return;
+
+    if (!profile?.barraca_id) {
+      setSelectedBarraca(null);
+      setStep('select-barraca');
+      return;
+    }
+
+    const barracaDoOperador = barracas.find(
+      (barraca) => barraca.id === profile.barraca_id
+    );
+
+    setSelectedBarraca(barracaDoOperador || null);
+    setStep(barracaDoOperador ? 'scan-card' : 'select-barraca');
+  }, [isBarraca, profile?.barraca_id, barracas]);
 
   // Reseta ao mudar de barraca
   useEffect(() => {
@@ -51,6 +69,8 @@ export default function Sale() {
 
   // Seleciona barraca
   const handleBarracaSelect = (barraca) => {
+    if (isBarraca) return;
+
     setSelectedBarraca(barraca);
     if (barraca) {
       setStep('scan-card');
@@ -152,6 +172,24 @@ export default function Sale() {
 
   // Vai para confirmação
   const handleCheckout = () => {
+    if (!selectedBarraca?.id) {
+      toast({
+        title: 'Barraca inválida',
+        description: 'Selecione ou vincule uma barraca válida antes de continuar.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isBarraca && profile?.barraca_id !== selectedBarraca.id) {
+      toast({
+        title: 'Barraca não permitida',
+        description: 'Operador de barraca só pode cobrar na barraca vinculada ao seu usuário.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     if (cartItems.length === 0) {
       toast({
         title: 'Carrinho vazio',
@@ -170,6 +208,14 @@ export default function Sale() {
     setError(null);
 
     try {
+      if (!selectedBarraca?.id) {
+        throw new Error('Nenhuma barraca válida vinculada para realizar a cobrança');
+      }
+
+      if (isBarraca && profile?.barraca_id !== selectedBarraca.id) {
+        throw new Error('Operador de barraca só pode cobrar na barraca vinculada ao seu usuário');
+      }
+
       // Prepara dados da venda
       const saleData = {
         card_id: scannedCard.id,
@@ -219,7 +265,7 @@ export default function Sale() {
     setCartItems([]);
     setSaleResult(null);
     setError(null);
-    setStep('scan-card');
+    setStep(selectedBarraca?.id ? 'scan-card' : 'select-barraca');
   };
 
   // Volta para home
@@ -284,15 +330,58 @@ export default function Sale() {
 
         {/* Conteúdo baseado no step */}
         {step === 'select-barraca' && (
-          <BarracaSelector
-            value={selectedBarraca}
-            onChange={handleBarracaSelect}
-            barracas={barracas}
-            loading={barracasLoading}
-            required
-            label="Selecione a Barraca"
-            
-          />
+          isBarraca ? (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {!profile?.barraca_id
+                  ? 'Seu usuário de barraca não possui barraca vinculada. Não é possível realizar cobranças.'
+                  : barracasLoading
+                    ? 'Carregando dados da barraca vinculada...'
+                    : 'A barraca vinculada ao seu usuário não foi encontrada ou não está disponível.'}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Store className="h-5 w-5" />
+                    Seleção de Barraca
+                  </CardTitle>
+                  <CardDescription>
+                    Escolha a barraca para iniciar a venda.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Barraca selecionável para perfis administrativos.</p>
+                    <select
+                      value={selectedBarraca?.id || ''}
+                      onChange={(e) => {
+                        const barraca = barracas.find(item => item.id === parseInt(e.target.value, 10));
+                        handleBarracaSelect(barraca || null);
+                      }}
+                      disabled={barracasLoading}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">
+                        {barracasLoading ? 'Carregando barracas...' : 'Selecione uma barraca'}
+                      </option>
+                      {barracas
+                        .filter((barraca) => barraca.status === 'active')
+                        .map((barraca) => (
+                          <option key={barraca.id} value={barraca.id}>
+                            {barraca.name}
+                            {barraca.responsible ? ` - ${barraca.responsible}` : ''}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )
         )}
 
         {step === 'scan-card' && (
@@ -320,10 +409,11 @@ export default function Sale() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Barraca Selecionada</CardTitle>
+                <CardTitle>{isBarraca ? 'Barraca Vinculada' : 'Barraca Selecionada'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Barraca:</p>
                   <p className="font-semibold text-lg">{selectedBarraca?.name}</p>
                   {selectedBarraca?.description && (
                     <p className="text-muted-foreground">{selectedBarraca.description}</p>
@@ -331,6 +421,11 @@ export default function Sale() {
                   {selectedBarraca?.responsible && (
                     <p className="text-sm text-muted-foreground">
                       Responsável: {selectedBarraca.responsible}
+                    </p>
+                  )}
+                  {isBarraca && (
+                    <p className="text-sm text-primary font-medium">
+                      Operando exclusivamente na barraca vinculada ao seu usuário.
                     </p>
                   )}
                 </div>
@@ -342,6 +437,19 @@ export default function Sale() {
         {step === 'add-items' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-muted-foreground">Barraca em operação</p>
+                    <p className="text-lg font-semibold">{selectedBarraca?.name || 'Não definida'}</p>
+                    {isBarraca && (
+                      <p className="text-sm text-primary">
+                        Barraca fixa do operador.
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
               {/* Info do Cartão */}
               <Card>
                 <CardHeader>

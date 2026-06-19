@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Hook para gerenciar transações
  * Fornece funções para buscar, criar e filtrar transações
  */
 export function useTransactions() {
+  const { profile, isBarraca } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,6 +19,23 @@ export function useTransactions() {
     try {
       setLoading(true);
       setError(null);
+
+      const effectiveFilters = { ...filters };
+
+      if (isBarraca) {
+        if (!profile?.barraca_id) {
+          throw new Error('Usuário de barraca sem barraca vinculada');
+        }
+
+        if (
+          effectiveFilters.barraca_id &&
+          effectiveFilters.barraca_id !== profile.barraca_id
+        ) {
+          throw new Error('Operador de barraca só pode consultar transações da sua própria barraca');
+        }
+
+        effectiveFilters.barraca_id = profile.barraca_id;
+      }
 
       let query = supabase
         .from('transactions')
@@ -40,28 +59,28 @@ export function useTransactions() {
         .order('created_at', { ascending: false });
 
       // Aplica filtros
-      if (filters.type) {
-        query = query.eq('type', filters.type);
+      if (effectiveFilters.type) {
+        query = query.eq('type', effectiveFilters.type);
       }
 
-      if (filters.card_id) {
-        query = query.eq('card_id', filters.card_id);
+      if (effectiveFilters.card_id) {
+        query = query.eq('card_id', effectiveFilters.card_id);
       }
 
-      if (filters.barraca_id) {
-        query = query.eq('barraca_id', filters.barraca_id);
+      if (effectiveFilters.barraca_id) {
+        query = query.eq('barraca_id', effectiveFilters.barraca_id);
       }
 
-      if (filters.start_date) {
-        query = query.gte('created_at', filters.start_date);
+      if (effectiveFilters.start_date) {
+        query = query.gte('created_at', effectiveFilters.start_date);
       }
 
-      if (filters.end_date) {
-        query = query.lte('created_at', filters.end_date);
+      if (effectiveFilters.end_date) {
+        query = query.lte('created_at', effectiveFilters.end_date);
       }
 
-      if (filters.limit) {
-        query = query.limit(filters.limit);
+      if (effectiveFilters.limit) {
+        query = query.limit(effectiveFilters.limit);
       }
 
       const { data, error: fetchError } = await query;
@@ -103,6 +122,30 @@ export function useTransactions() {
 
       const { card_id, barraca_id, items } = saleData;
 
+      if (isBarraca) {
+        if (!profile?.barraca_id) {
+          throw new Error('Usuário de barraca sem barraca vinculada');
+        }
+
+        if (barraca_id && barraca_id !== profile.barraca_id) {
+          throw new Error('Operador de barraca só pode cobrar na barraca vinculada ao seu usuário');
+        }
+      }
+
+      const effectiveBarracaId = isBarraca ? profile?.barraca_id : barraca_id;
+
+      if (!effectiveBarracaId) {
+        throw new Error('Barraca obrigatória para processar a venda');
+      }
+
+      if (!card_id) {
+        throw new Error('Cartão obrigatório para processar a venda');
+      }
+
+      if (!Array.isArray(items) || items.length === 0) {
+        throw new Error('Informe ao menos um item para processar a venda');
+      }
+
       // Gera chave de idempotência única
       const idempotencyKey = crypto.randomUUID();
 
@@ -110,7 +153,7 @@ export function useTransactions() {
       const { data, error: rpcError } = await supabase.rpc('process_sale', {
         p_idempotency_key: idempotencyKey,
         p_card_id: card_id,
-        p_barraca_id: barraca_id,
+        p_barraca_id: effectiveBarracaId,
         p_items: items
       });
 
@@ -142,7 +185,7 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [fetchTransactions]);
+  }, [fetchTransactions, isBarraca, profile?.barraca_id]);
 
   /**
    * Realiza recarga em um cartão usando stored procedure
