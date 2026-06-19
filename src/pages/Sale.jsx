@@ -1,14 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import QrScanner from '@/components/qr/QrScanner';
-import { SaleForm } from '@/components/sales/SaleForm';
-import { SaleCart } from '@/components/sales/SaleCart';
-import { SaleConfirmation } from '@/components/sales/SaleConfirmation';
-import { SaleReceipt } from '@/components/sales/SaleReceipt';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { useBarracas } from '@/hooks/useBarracas';
 import { useProducts } from '@/hooks/useProducts';
 import { useCards } from '@/hooks/useCards';
 import { useTransactions } from '@/hooks/useTransactions';
@@ -16,10 +9,290 @@ import { useSaleIdempotency } from '@/hooks/useSaleIdempotency';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/utils';
-import { ShoppingCart, QrCode, AlertCircle, CreditCard, Store, Plus, Minus, Package } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, X } from 'lucide-react';
 
 /**
- * Página de vendas
+ * Componente de Card de Produto - Otimizado para Mobile
+ */
+function ProductCard({ product, quantity, onIncrement, onDecrement, onSetQuantity }) {
+  const [showInput, setShowInput] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+
+  const handleInputSubmit = () => {
+    const qty = parseInt(inputValue, 10);
+    if (!isNaN(qty) && qty >= 0) {
+      onSetQuantity(qty);
+    }
+    setShowInput(false);
+    setInputValue('');
+  };
+
+  const subtotal = quantity * product.price;
+
+  return (
+    <>
+      <div className={`
+        bg-white rounded-lg border-2 p-4 transition-all
+        ${quantity > 0 ? 'border-blue-500 shadow-md' : 'border-gray-200'}
+      `}>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <h3 className="font-bold text-lg">{product.name}</h3>
+            <p className="text-xl text-green-600 font-semibold">
+              {formatCurrency(product.price)}
+            </p>
+            {product.stock_quantity !== null && (
+              <p className="text-xs text-gray-500 mt-1">
+                Estoque: {product.stock_quantity}
+              </p>
+            )}
+          </div>
+          
+          {quantity > 0 && (
+            <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-bold">
+              {quantity}x
+            </div>
+          )}
+        </div>
+
+        {/* Controles de quantidade */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onDecrement}
+            disabled={quantity === 0}
+            className="flex-1 h-14 bg-red-100 text-red-600 rounded-lg font-bold text-2xl hover:bg-red-200 active:bg-red-300 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            −
+          </button>
+
+          <button
+            onClick={() => setShowInput(true)}
+            className="flex-1 h-14 bg-gray-100 rounded-lg font-bold text-xl hover:bg-gray-200 active:bg-gray-300 transition-colors"
+          >
+            {quantity || '0'}
+          </button>
+
+          <button
+            onClick={onIncrement}
+            className="flex-1 h-14 bg-green-100 text-green-600 rounded-lg font-bold text-2xl hover:bg-green-200 active:bg-green-300 transition-colors"
+          >
+            +
+          </button>
+        </div>
+
+        {/* Subtotal */}
+        {quantity > 0 && (
+          <div className="mt-3 pt-3 border-t flex justify-between items-center">
+            <span className="text-sm text-gray-600">Subtotal:</span>
+            <span className="text-lg font-bold text-blue-600">
+              {formatCurrency(subtotal)}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Input modal para quantidade */}
+      {showInput && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="font-bold text-lg mb-4">Quantidade de {product.name}</h3>
+            <input
+              type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleInputSubmit()}
+              placeholder="Digite a quantidade"
+              autoFocus
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg text-xl text-center font-bold focus:border-blue-500 focus:outline-none"
+            />
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => {
+                  setShowInput(false);
+                  setInputValue('');
+                }}
+                className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleInputSubmit}
+                className="flex-1 py-3 bg-blue-600 text-white rounded-lg font-semibold"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+/**
+ * Componente de Scanner QR
+ */
+function QrScannerStep({ onScan, onBack }) {
+  const [error, setError] = useState(null);
+
+  const handleScan = (data) => {
+    setError(null);
+    onScan(data);
+  };
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-blue-600 font-semibold"
+      >
+        <ArrowLeft className="h-5 w-5" />
+        Voltar
+      </button>
+
+      <div className="bg-white rounded-lg p-6">
+        <h2 className="text-xl font-bold mb-4">Escaneie o Cartão do Cliente</h2>
+        <p className="text-gray-600 mb-6">
+          Aponte a câmera para o QR Code do cartão
+        </p>
+        
+        <QrScanner onScan={handleScan} />
+        
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Componente de Confirmação
+ */
+function ConfirmationStep({ cart, products, total, scannedCard, onConfirm, onCancel, loading }) {
+  const items = products
+    .filter(p => cart[p.id] > 0)
+    .map(p => ({
+      name: p.name,
+      quantity: cart[p.id],
+      unit_price: p.price,
+      subtotal: cart[p.id] * p.price
+    }));
+
+  const hasInsufficientBalance = total > (scannedCard?.balance || 0);
+
+  return (
+    <div className="space-y-4">
+      <button
+        onClick={onCancel}
+        className="flex items-center gap-2 text-blue-600 font-semibold"
+        disabled={loading}
+      >
+        <ArrowLeft className="h-5 w-5" />
+        Voltar
+      </button>
+
+      <div className="bg-white rounded-lg p-6 space-y-6">
+        <h2 className="text-xl font-bold">Confirmar Venda</h2>
+
+        {/* Info do Cliente */}
+        <div className="border-b pb-4">
+          <p className="text-sm text-gray-600 mb-1">Cliente</p>
+          <p className="font-bold text-lg">{scannedCard?.client?.name}</p>
+          <p className="text-sm text-gray-500">
+            Cartão: {scannedCard?.uuid?.slice(0, 8)}...
+          </p>
+        </div>
+
+        {/* Saldo */}
+        <div className="border-b pb-4">
+          <div className="flex justify-between items-center">
+            <span className="text-gray-600">Saldo Atual:</span>
+            <span className="text-xl font-bold text-green-600">
+              {formatCurrency(scannedCard?.balance || 0)}
+            </span>
+          </div>
+        </div>
+
+        {/* Itens */}
+        <div className="space-y-2">
+          <p className="font-semibold text-gray-700">Itens da Venda:</p>
+          {items.map((item, index) => (
+            <div key={index} className="flex justify-between items-center py-2 border-b">
+              <div className="flex-1">
+                <p className="font-medium">{item.name}</p>
+                <p className="text-sm text-gray-500">
+                  {item.quantity}x {formatCurrency(item.unit_price)}
+                </p>
+              </div>
+              <p className="font-semibold">{formatCurrency(item.subtotal)}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Total */}
+        <div className="bg-blue-50 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-lg font-semibold">Total:</span>
+            <span className="text-2xl font-bold text-blue-600">
+              {formatCurrency(total)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Saldo após venda:</span>
+            <span className={`font-semibold ${hasInsufficientBalance ? 'text-red-600' : 'text-green-600'}`}>
+              {formatCurrency((scannedCard?.balance || 0) - total)}
+            </span>
+          </div>
+        </div>
+
+        {/* Alerta de saldo insuficiente */}
+        {hasInsufficientBalance && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Saldo insuficiente! Faltam {formatCurrency(total - (scannedCard?.balance || 0))}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Botões */}
+        <div className="flex gap-3 pt-4">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 py-4 border-2 border-gray-300 rounded-lg font-semibold text-lg disabled:opacity-50"
+          >
+            <X className="inline h-5 w-5 mr-2" />
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading || hasInsufficientBalance}
+            className="flex-[2] py-4 bg-green-600 text-white rounded-lg font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              'Processando...'
+            ) : (
+              <>
+                <Check className="inline h-5 w-5 mr-2" />
+                Confirmar Venda
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Página de Vendas - Mobile First
  */
 export default function Sale() {
   const navigate = useNavigate();
@@ -27,88 +300,69 @@ export default function Sale() {
   const { profile, isBarraca } = useAuth();
   
   // Hooks
-  const { barracas, loading: barracasLoading } = useBarracas();
   const { getCardByUuid } = useCards();
   const { processSale } = useTransactions();
-  const { idempotencyKey, processing: idempotencyProcessing, startProcessing, generateNewKey } = useSaleIdempotency();
+  const { idempotencyKey, startProcessing, generateNewKey } = useSaleIdempotency();
   
-  // Estados principais
-  const [step, setStep] = useState('select-barraca'); // select-barraca, scan-card, add-items, confirm, receipt
-  const [selectedBarraca, setSelectedBarraca] = useState(null);
+  // Estados
+  const [step, setStep] = useState('select'); // 'select' | 'scan' | 'confirm' | 'success'
+  const [cart, setCart] = useState({});
   const [scannedCard, setScannedCard] = useState(null);
-  const [cartItems, setCartItems] = useState([]);
-  const [quantities, setQuantities] = useState({}); // Quantidades por produto
+  const [loading, setLoading] = useState(false);
   const [saleResult, setSaleResult] = useState(null);
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Hook de produtos (carrega quando barraca é selecionada)
-  const { products, loading: productsLoading } = useProducts(selectedBarraca?.id);
+  // Carrega produtos da barraca do operador
+  const { products, loading: productsLoading } = useProducts(profile?.barraca_id);
 
-  // Define barraca fixa para operador de barraca
+  // Carrega produtos automaticamente
   useEffect(() => {
-    console.log('Sale.jsx - useEffect barraca:', {
-      isBarraca,
-      profile,
-      barraca_id: profile?.barraca_id,
-      barracas_count: barracas.length
-    });
-
-    if (!isBarraca) return;
-
     if (!profile?.barraca_id) {
-      console.log('Sale.jsx - Operador de barraca sem barraca_id no profile');
-      setSelectedBarraca(null);
-      setStep('select-barraca');
-      return;
-    }
-
-    const barracaDoOperador = barracas.find(
-      (barraca) => barraca.id === profile.barraca_id
-    );
-
-    console.log('Sale.jsx - Barraca encontrada:', barracaDoOperador);
-    setSelectedBarraca(barracaDoOperador || null);
-    setStep(barracaDoOperador ? 'scan-card' : 'select-barraca');
-  }, [isBarraca, profile?.barraca_id, barracas]);
-
-  // Reseta ao mudar de barraca
-  useEffect(() => {
-    if (selectedBarraca) {
-      setScannedCard(null);
-      setCartItems([]);
-      setQuantities({});
-      setError(null);
-    }
-  }, [selectedBarraca]);
-
-  // Inicializa quantities quando produtos são carregados
-  useEffect(() => {
-    if (products && products.length > 0) {
-      const initialQuantities = {};
-      products.forEach(product => {
-        initialQuantities[product.id] = 0;
+      toast({
+        title: 'Erro',
+        description: 'Operador sem barraca vinculada',
+        variant: 'destructive',
       });
-      setQuantities(initialQuantities);
     }
-  }, [products]);
+  }, [profile?.barraca_id, toast]);
 
-  // Seleciona barraca
-  const handleBarracaSelect = (barraca) => {
-    if (isBarraca) return;
+  // Atualiza quantidade no carrinho
+  function updateCart(productId, delta) {
+    setCart(prev => {
+      const current = prev[productId] || 0;
+      const newQty = Math.max(0, current + delta);
+      
+      if (newQty === 0) {
+        const { [productId]: _, ...rest } = prev;
+        return rest;
+      }
+      
+      return { ...prev, [productId]: newQty };
+    });
+  }
 
-    setSelectedBarraca(barraca);
-    if (barraca) {
-      setStep('scan-card');
+  // Define quantidade diretamente
+  function setCartQuantity(productId, qty) {
+    if (qty === 0) {
+      const { [productId]: _, ...rest } = cart;
+      setCart(rest);
+    } else {
+      setCart(prev => ({ ...prev, [productId]: qty }));
     }
-  };
+  }
+
+  // Calcula total
+  const total = products.reduce((sum, p) => 
+    sum + (p.price * (cart[p.id] || 0)), 0
+  );
+  
+  const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
 
   // Processa QR Code escaneado
   const handleQrScan = async (qrData) => {
     try {
-      setError(null);
+      setLoading(true);
       
-      // Extrai UUID do QR Code (formato: QUERMESSEON:{uuid})
+      // Extrai UUID do QR Code
       const uuid = qrData.replace('QUERMESSEON:', '').trim();
       
       // Busca cartão
@@ -123,103 +377,25 @@ export default function Sale() {
       }
 
       setScannedCard(card);
-      setStep('add-items');
+      setStep('confirm');
       
       toast({
         title: 'Cartão identificado!',
         description: `Cliente: ${card.client.name}`,
       });
     } catch (err) {
-      setError(err.message);
       toast({
         title: 'Erro ao escanear',
         description: err.message,
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
-  };
-
-  // Atualiza quantidade de um produto
-  const updateQuantity = (productId, delta) => {
-    setQuantities(prev => {
-      const currentQty = prev[productId] || 0;
-      const newQty = Math.max(0, currentQty + delta);
-      return {
-        ...prev,
-        [productId]: newQty
-      };
-    });
-  };
-
-  // Define quantidade diretamente
-  const setQuantity = (productId, value) => {
-    const qty = Math.max(0, parseInt(value) || 0);
-    setQuantities(prev => ({
-      ...prev,
-      [productId]: qty
-    }));
-  };
-
-  // Limpa todas as quantidades
-  const clearQuantities = () => {
-    const resetQuantities = {};
-    products.forEach(product => {
-      resetQuantities[product.id] = 0;
-    });
-    setQuantities(resetQuantities);
-    
-    toast({
-      title: 'Quantidades zeradas',
-      description: 'Todas as quantidades foram resetadas.',
-    });
-  };
-
-  // Vai para confirmação
-  const handleCheckout = () => {
-    if (!selectedBarraca?.id) {
-      toast({
-        title: 'Barraca inválida',
-        description: 'Selecione ou vincule uma barraca válida antes de continuar.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    if (isBarraca && profile?.barraca_id !== selectedBarraca.id) {
-      toast({
-        title: 'Barraca não permitida',
-        description: 'Operador de barraca só pode cobrar na barraca vinculada ao seu usuário.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    // Monta carrinho a partir das quantidades
-    const items = products
-      .filter(product => quantities[product.id] > 0)
-      .map(product => ({
-        product_id: product.id,
-        name: product.name,
-        quantity: quantities[product.id],
-        unit_price: product.price
-      }));
-
-    if (items.length === 0) {
-      toast({
-        title: 'Nenhum produto selecionado',
-        description: 'Adicione pelo menos um produto antes de finalizar.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setCartItems(items);
-    setStep('confirm');
   };
 
   // Confirma venda
   const handleConfirmSale = async () => {
-    // Previne cliques duplos
     if (!startProcessing()) {
       toast({
         title: 'Aguarde',
@@ -229,43 +405,31 @@ export default function Sale() {
       return;
     }
 
-    setProcessing(true);
-    setError(null);
+    setLoading(true);
 
     try {
-      if (!selectedBarraca?.id) {
-        throw new Error('Nenhuma barraca válida vinculada para realizar a cobrança');
-      }
-
-      if (isBarraca && profile?.barraca_id !== selectedBarraca.id) {
-        throw new Error('Operador de barraca só pode cobrar na barraca vinculada ao seu usuário');
-      }
-
-      // Prepara dados da venda
-      const saleData = {
-        card_id: scannedCard.id,
-        barraca_id: selectedBarraca.id,
-        items: cartItems.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price
-        }))
-      };
-
-      console.log('Processando venda com idempotency_key:', idempotencyKey);
+      // Prepara itens
+      const items = products
+        .filter(p => cart[p.id] > 0)
+        .map(p => ({
+          product_id: p.id,
+          quantity: cart[p.id],
+          unit_price: p.price
+        }));
 
       // Processa venda
-      const result = await processSale(saleData);
+      const result = await processSale({
+        card_id: scannedCard.id,
+        barraca_id: profile.barraca_id,
+        items
+      });
 
       if (!result.success) {
         throw new Error(result.error);
       }
 
-      // Salva resultado
       setSaleResult(result);
-      setStep('receipt');
-
-      // Gera nova chave para próxima venda
+      setStep('success');
       generateNewKey();
 
       toast({
@@ -273,446 +437,171 @@ export default function Sale() {
         description: 'A venda foi processada com sucesso.',
       });
     } catch (err) {
-      setError(err.message);
       toast({
         title: 'Erro ao processar venda',
         description: err.message,
         variant: 'destructive',
       });
     } finally {
-      setProcessing(false);
+      setLoading(false);
     }
-  };
-
-  // Cancela confirmação
-  const handleCancelConfirmation = () => {
-    setStep('add-items');
   };
 
   // Nova venda
   const handleNewSale = () => {
+    setCart({});
     setScannedCard(null);
-    setCartItems([]);
-    clearQuantities();
     setSaleResult(null);
-    setError(null);
-    generateNewKey(); // Nova chave de idempotência
-    setStep(selectedBarraca?.id ? 'scan-card' : 'select-barraca');
+    setStep('select');
+    generateNewKey();
   };
-
-  // Volta para home
-  const handleGoHome = () => {
-    navigate('/');
-  };
-
-  // Calcula total baseado nas quantidades
-  const calculateTotal = () => {
-    if (!products || products.length === 0) return 0;
-    
-    return products.reduce((sum, product) => {
-      const qty = quantities[product.id] || 0;
-      return sum + (qty * product.price);
-    }, 0);
-  };
-
-  // Calcula total de itens
-  const calculateTotalItems = () => {
-    return Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
-  };
-
-  const total = step === 'confirm' || step === 'receipt'
-    ? cartItems.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0)
-    : calculateTotal();
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6 max-w-7xl">
-      {/* Cabeçalho */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="p-1.5 sm:p-2 rounded-lg bg-primary/10 flex-shrink-0">
-          <ShoppingCart className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold truncate">Realizar Venda</h1>
-          <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
-            Sistema de vendas com cartão pré-pago
+    <div className="min-h-screen bg-gray-50 pb-32">
+      {/* Header fixo */}
+      <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
+        <div className="px-4 py-3">
+          <h1 className="text-xl font-bold">Nova Venda</h1>
+          <p className="text-sm text-gray-600">
+            {step === 'select' && 'Selecione os produtos'}
+            {step === 'scan' && 'Escaneie o cartão do cliente'}
+            {step === 'confirm' && 'Confirme a venda'}
+            {step === 'success' && 'Venda concluída!'}
           </p>
         </div>
       </div>
 
-      {/* Progresso - Mobile Friendly */}
-      <Card>
-        <CardContent className="pt-4 sm:pt-6">
-          <div className="flex items-center justify-between overflow-x-auto pb-2">
-            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'select-barraca' ? 'text-primary' : step !== 'select-barraca' ? 'text-green-600' : 'text-muted-foreground'}`}>
-              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'select-barraca' ? 'bg-primary text-primary-foreground' : step !== 'select-barraca' ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                1
+      {/* Conteúdo */}
+      <div className="p-4">
+        {step === 'select' && (
+          <div className="space-y-3">
+            {productsLoading ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Carregando produtos...</p>
               </div>
-              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Barraca</span>
-            </div>
-            <div className="flex-1 h-0.5 bg-muted mx-1 sm:mx-2 min-w-[20px]" />
-            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'scan-card' ? 'text-primary' : ['add-items', 'confirm', 'receipt'].includes(step) ? 'text-green-600' : 'text-muted-foreground'}`}>
-              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'scan-card' ? 'bg-primary text-primary-foreground' : ['add-items', 'confirm', 'receipt'].includes(step) ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                2
+            ) : products && products.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-gray-500">Nenhum produto cadastrado</p>
               </div>
-              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Cartão</span>
-            </div>
-            <div className="flex-1 h-0.5 bg-muted mx-1 sm:mx-2 min-w-[20px]" />
-            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'add-items' ? 'text-primary' : ['confirm', 'receipt'].includes(step) ? 'text-green-600' : 'text-muted-foreground'}`}>
-              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'add-items' ? 'bg-primary text-primary-foreground' : ['confirm', 'receipt'].includes(step) ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                3
-              </div>
-              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Produtos</span>
-            </div>
-            <div className="flex-1 h-0.5 bg-muted mx-1 sm:mx-2 min-w-[20px]" />
-            <div className={`flex items-center gap-1 sm:gap-2 flex-shrink-0 ${step === 'confirm' ? 'text-primary' : step === 'receipt' ? 'text-green-600' : 'text-muted-foreground'}`}>
-              <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-base ${step === 'confirm' ? 'bg-primary text-primary-foreground' : step === 'receipt' ? 'bg-green-600 text-white' : 'bg-muted'}`}>
-                4
-              </div>
-              <span className="text-xs sm:text-sm font-medium hidden xs:inline">Confirmar</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-        {/* Conteúdo baseado no step */}
-        {step === 'select-barraca' && (
-          isBarraca ? (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                {!profile?.barraca_id
-                  ? 'Seu usuário de barraca não possui barraca vinculada. Não é possível realizar cobranças.'
-                  : barracasLoading
-                    ? 'Carregando dados da barraca vinculada...'
-                    : 'A barraca vinculada ao seu usuário não foi encontrada ou não está disponível.'}
-              </AlertDescription>
-            </Alert>
-          ) : (
-            <div className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Store className="h-5 w-5" />
-                    Seleção de Barraca
-                  </CardTitle>
-                  <CardDescription>
-                    Escolha a barraca para iniciar a venda.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">Barraca selecionável para perfis administrativos.</p>
-                    <select
-                      value={selectedBarraca?.id || ''}
-                      onChange={(e) => {
-                        const barraca = barracas.find(item => item.id === parseInt(e.target.value, 10));
-                        handleBarracaSelect(barraca || null);
-                      }}
-                      disabled={barracasLoading}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="">
-                        {barracasLoading ? 'Carregando barracas...' : 'Selecione uma barraca'}
-                      </option>
-                      {barracas
-                        .filter((barraca) => barraca.status === 'active')
-                        .map((barraca) => (
-                          <option key={barraca.id} value={barraca.id}>
-                            {barraca.name}
-                            {barraca.responsible ? ` - ${barraca.responsible}` : ''}
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )
-        )}
-
-        {step === 'scan-card' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <QrCode className="h-5 w-5" />
-                  Escanear Cartão
-                </CardTitle>
-                <CardDescription>
-                  Aponte a câmera para o QR Code do cartão
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <QrScanner onScan={handleQrScan} />
-                {error && (
-                  <Alert variant="destructive" className="mt-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{isBarraca ? 'Barraca Vinculada' : 'Barraca Selecionada'}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Barraca:</p>
-                  <p className="font-semibold text-lg">{selectedBarraca?.name}</p>
-                  {selectedBarraca?.description && (
-                    <p className="text-muted-foreground">{selectedBarraca.description}</p>
-                  )}
-                  {selectedBarraca?.responsible && (
-                    <p className="text-sm text-muted-foreground">
-                      Responsável: {selectedBarraca.responsible}
-                    </p>
-                  )}
-                  {isBarraca && (
-                    <p className="text-sm text-primary font-medium">
-                      Operando exclusivamente na barraca vinculada ao seu usuário.
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            ) : (
+              products.map(product => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  quantity={cart[product.id] || 0}
+                  onIncrement={() => updateCart(product.id, 1)}
+                  onDecrement={() => updateCart(product.id, -1)}
+                  onSetQuantity={(qty) => setCartQuantity(product.id, qty)}
+                />
+              ))
+            )}
           </div>
         )}
 
-        {step === 'add-items' && (
-          <div className="space-y-4 sm:space-y-6">
-            {/* Info do Cartão e Barraca */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <CreditCard className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Cartão do Cliente
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <p className="font-semibold text-base sm:text-lg">{scannedCard?.client?.name}</p>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      Cartão: {scannedCard?.uuid?.slice(0, 8)}...
-                    </p>
-                    <div className="pt-2 border-t">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-muted-foreground">Saldo Disponível:</span>
-                        <span className="text-lg sm:text-xl font-bold text-green-600">
-                          {formatCurrency(scannedCard?.balance || 0)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-                    <Store className="h-4 w-4 sm:h-5 sm:w-5" />
-                    Barraca
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-1">
-                    <p className="font-semibold text-base sm:text-lg">{selectedBarraca?.name}</p>
-                    {selectedBarraca?.responsible && (
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        Responsável: {selectedBarraca.responsible}
-                      </p>
-                    )}
-                    {isBarraca && (
-                      <p className="text-xs sm:text-sm text-primary font-medium pt-2">
-                        ✓ Barraca fixa do operador
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Lista de Produtos com Quantidades */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Produtos da Barraca
-                  </CardTitle>
-                  {calculateTotalItems() > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={clearQuantities}
-                      className="text-xs"
-                    >
-                      Limpar Tudo
-                    </Button>
-                  )}
-                </div>
-                <CardDescription>
-                  Selecione as quantidades dos produtos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {productsLoading ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Carregando produtos...
-                  </div>
-                ) : products && products.length > 0 ? (
-                  <div className="space-y-3">
-                    {products.map(product => {
-                      const qty = quantities[product.id] || 0;
-                      const subtotal = qty * product.price;
-                      
-                      return (
-                        <div
-                          key={product.id}
-                          className={`flex items-center justify-between p-3 sm:p-4 border rounded-lg transition-colors ${
-                            qty > 0 ? 'bg-primary/5 border-primary/30' : 'bg-card'
-                          }`}
-                        >
-                          <div className="flex-1 min-w-0 mr-3">
-                            <p className="font-semibold text-sm sm:text-base truncate">
-                              {product.name}
-                            </p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-xs sm:text-sm text-muted-foreground">
-                                {formatCurrency(product.price)} / unidade
-                              </p>
-                              {product.stock_quantity !== null && (
-                                <p className="text-xs text-muted-foreground">
-                                  • Estoque: {product.stock_quantity}
-                                </p>
-                              )}
-                            </div>
-                            {qty > 0 && (
-                              <p className="text-xs sm:text-sm font-semibold text-primary mt-1">
-                                Subtotal: {formatCurrency(subtotal)}
-                              </p>
-                            )}
-                          </div>
-
-                          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => updateQuantity(product.id, -1)}
-                              disabled={qty === 0}
-                              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
-                            >
-                              <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
-                            </Button>
-
-                            <div className="w-12 sm:w-16 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                value={qty}
-                                onChange={(e) => setQuantity(product.id, e.target.value)}
-                                className="w-full text-center font-bold text-base sm:text-lg border rounded px-1 py-1"
-                              />
-                            </div>
-
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => updateQuantity(product.id, 1)}
-                              className="h-8 w-8 sm:h-10 sm:w-10 rounded-full"
-                            >
-                              <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Nenhum produto cadastrado para esta barraca.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Resumo e Botão de Finalizar */}
-            <Card className="sticky bottom-4 shadow-lg">
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center text-sm sm:text-base">
-                    <span className="text-muted-foreground">Total de Itens:</span>
-                    <span className="font-semibold text-lg">
-                      {calculateTotalItems()} {calculateTotalItems() === 1 ? 'item' : 'itens'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pt-3 border-t">
-                    <span className="font-semibold text-base sm:text-lg">Total a Pagar:</span>
-                    <span className="font-bold text-xl sm:text-2xl text-primary">
-                      {formatCurrency(calculateTotal())}
-                    </span>
-                  </div>
-
-                  {calculateTotal() > (scannedCard?.balance || 0) && (
-                    <Alert variant="destructive" className="text-xs sm:text-sm">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Saldo insuficiente! Faltam {formatCurrency(calculateTotal() - (scannedCard?.balance || 0))}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  <Button
-                    onClick={handleCheckout}
-                    disabled={calculateTotalItems() === 0 || processing}
-                    className="w-full py-6 text-base sm:text-lg font-semibold"
-                    size="lg"
-                  >
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Continuar para Confirmação
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {step === 'scan' && (
+          <QrScannerStep
+            onScan={handleQrScan}
+            onBack={() => setStep('select')}
+          />
         )}
 
         {step === 'confirm' && (
-          <div className="w-full max-w-2xl mx-auto">
-            <SaleConfirmation
-              card={scannedCard}
-              barraca={selectedBarraca}
-              items={cartItems}
-              total={total}
-              onConfirm={handleConfirmSale}
-              onCancel={handleCancelConfirmation}
-              loading={processing}
-              error={error}
-            />
-          </div>
+          <ConfirmationStep
+            cart={cart}
+            products={products}
+            total={total}
+            scannedCard={scannedCard}
+            onConfirm={handleConfirmSale}
+            onCancel={() => setStep('scan')}
+            loading={loading}
+          />
         )}
 
-        {step === 'receipt' && saleResult && (
-          <div className="w-full max-w-2xl mx-auto">
-            <SaleReceipt
-              sale={{ id: saleResult.sale_id, created_at: new Date() }}
-              card={scannedCard}
-              barraca={selectedBarraca}
-              items={cartItems}
-              total={total}
-              newBalance={saleResult.new_balance}
-              onNewSale={handleNewSale}
-              onGoHome={handleGoHome}
-            />
+        {step === 'success' && saleResult && (
+          <div className="bg-white rounded-lg p-6 space-y-6">
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-green-600 mb-2">
+                Venda Realizada!
+              </h2>
+              <p className="text-gray-600">
+                A venda foi processada com sucesso
+              </p>
+            </div>
+
+            <div className="border-t border-b py-4 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Total da venda:</span>
+                <span className="font-bold text-lg">{formatCurrency(total)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Novo saldo:</span>
+                <span className="font-bold text-lg text-green-600">
+                  {formatCurrency(saleResult.new_balance)}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleNewSale}
+                className="w-full py-4 bg-blue-600 text-white rounded-lg font-semibold text-lg"
+              >
+                Nova Venda
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="w-full py-4 border-2 border-gray-300 rounded-lg font-semibold text-lg"
+              >
+                Voltar ao Início
+              </button>
+            </div>
           </div>
+        )}
+      </div>
+
+      {/* Footer fixo com resumo e ação */}
+      {step === 'select' && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg">
+          <div className="p-4 space-y-3">
+            {/* Resumo */}
+            <div className="flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-600">Total de Itens</p>
+                <p className="text-2xl font-bold">{totalItems}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {formatCurrency(total)}
+                </p>
+              </div>
+            </div>
+
+            {/* Botões */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCart({})}
+                disabled={totalItems === 0}
+                className="flex-1 py-3 border border-gray-300 rounded-lg font-semibold disabled:opacity-30"
+              >
+                Limpar
+              </button>
+              <button
+                onClick={() => setStep('scan')}
+                disabled={totalItems === 0}
+                className="flex-[2] py-3 bg-blue-600 text-white rounded-lg font-semibold text-lg disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
+// Made with Bob
