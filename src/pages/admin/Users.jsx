@@ -174,28 +174,38 @@ export default function Users() {
         });
       } else {
         // Criar novo usuário
-        // Primeiro, criar no Supabase Auth
+        // Criar no Supabase Auth com metadata
         const { data: authData, error: authError } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
+          options: {
+            data: {
+              name: formData.name,
+              role: formData.role,
+              barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
+            }
+          }
         });
 
         if (authError) throw authError;
 
-        // Depois, criar registro na tabela users
-        const { error: dbError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: formData.email,
-            name: formData.name,
-            role: formData.role,
-            barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
-            password_hash: 'managed_by_auth', // Placeholder
-            active: true,
-          });
+        // O trigger handle_new_user() cria automaticamente o registro na tabela users
+        // Aguardar um momento para o trigger executar
+        await new Promise(resolve => setTimeout(resolve, 500));
 
-        if (dbError) throw dbError;
+        // Atualizar campos adicionais se necessário (barraca_id)
+        if (formData.role === ROLES.BARRACA && formData.barraca_id) {
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({
+              barraca_id: formData.barraca_id
+            })
+            .eq('id', authData.user.id);
+
+          if (updateError) {
+            console.warn('Aviso ao atualizar barraca_id:', updateError);
+          }
+        }
 
         toast({
           title: 'Sucesso',

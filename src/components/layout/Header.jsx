@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, Grid, BarChart3, Menu, LogOut, User, Users, Wallet, UserPlus, Layers } from 'lucide-react'
+import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, BarChart3, Menu, LogOut, User, Users, Wallet, UserPlus, Layers, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../ui/button'
@@ -10,57 +10,64 @@ export default function Header() {
   const location = useLocation()
   const navigate = useNavigate()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [openDropdown, setOpenDropdown] = useState(null)
   const { profile, logout, isAuthenticated } = useAuth()
 
   // Navegação baseada no perfil do usuário
   const getNavigation = () => {
     if (!profile) return []
 
-    const baseItems = [
-      { name: 'Home', href: '/', icon: Home },
-    ]
-
-    // Menu para ADMIN
+    // Menu para ADMIN - Simplificado e agrupado
     if (profile.role === 'admin') {
       return [
-        ...baseItems,
         { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Escanear', href: '/scan', icon: QrCode },
-        { name: 'Venda', href: '/sale', icon: ShoppingCart },
-        { name: 'Cartões', href: '/cards', icon: CreditCard },
-        { name: 'Histórico', href: '/historico', icon: History },
-        { name: 'Barracas', href: '/barracas', icon: Store },
-        { name: 'Estoque', href: '/estoque', icon: Package },
-        { name: 'Relatórios', href: '/relatorios', icon: BarChart3 },
-        { name: 'Usuários', href: '/admin/usuarios', icon: Users },
-        { name: 'Gerar Lote', href: '/admin/gerar-lote', icon: Layers },
+        {
+          name: 'Gestão',
+          icon: Store,
+          dropdown: [
+            { name: 'Barracas', href: '/barracas', icon: Store },
+            { name: 'Estoque', href: '/estoque', icon: Package },
+            { name: 'Cartões', href: '/cards', icon: CreditCard },
+          ]
+        },
+        {
+          name: 'Relatórios',
+          icon: BarChart3,
+          dropdown: [
+            { name: 'Histórico', href: '/historico', icon: History },
+            { name: 'Relatórios', href: '/relatorios', icon: BarChart3 },
+          ]
+        },
+        {
+          name: 'Admin',
+          icon: Users,
+          dropdown: [
+            { name: 'Usuários', href: '/admin/usuarios', icon: Users },
+            { name: 'Gerar Lote', href: '/admin/gerar-lote', icon: Layers },
+          ]
+        },
       ]
     }
 
-    // Menu para CAIXA
+    // Menu para CAIXA - Focado e limpo
     if (profile.role === 'caixa') {
       return [
-        ...baseItems,
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-        { name: 'Escanear', href: '/scan', icon: QrCode },
         { name: 'Novo Cliente', href: '/caixa/novo-cliente', icon: UserPlus },
-        { name: 'Recarga', href: '/caixa/recarga', icon: Wallet },
+        { name: 'Recarregar', href: '/scan', icon: Wallet },
         { name: 'Transferir', href: '/caixa/transferir-cartao', icon: ArrowLeftRight },
-        { name: 'Cartões', href: '/cards', icon: CreditCard },
         { name: 'Histórico', href: '/historico', icon: History },
       ]
     }
 
-    // Menu para BARRACA
+    // Menu para BARRACA - Simples e direto
     if (profile.role === 'barraca') {
       return [
-        ...baseItems,
         { name: 'Venda', href: '/sale', icon: ShoppingCart },
         { name: 'Histórico', href: '/historico', icon: History },
       ]
     }
 
-    return baseItems
+    return []
   }
 
   const navigation = getNavigation()
@@ -98,8 +105,51 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1">
-            {navigation.map((item) => {
+            {navigation.map((item, index) => {
               const Icon = item.icon
+              
+              // Item com dropdown
+              if (item.dropdown) {
+                return (
+                  <div key={index} className="relative">
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === index ? null : index)}
+                      className="flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium transition-colors text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span>{item.name}</span>
+                      <ChevronDown className="h-3 w-3" />
+                    </button>
+                    
+                    {openDropdown === index && (
+                      <div className="absolute top-full left-0 mt-1 w-48 rounded-md border bg-popover shadow-lg z-50">
+                        <div className="p-1">
+                          {item.dropdown.map((subItem) => {
+                            const SubIcon = subItem.icon
+                            return (
+                              <Link
+                                key={subItem.href}
+                                to={subItem.href}
+                                onClick={() => setOpenDropdown(null)}
+                                className={`flex items-center space-x-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                                  isActive(subItem.href)
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                                }`}
+                              >
+                                <SubIcon className="h-4 w-4" />
+                                <span>{subItem.name}</span>
+                              </Link>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              }
+              
+              // Item normal
               return (
                 <Link
                   key={item.href}
@@ -175,9 +225,43 @@ export default function Header() {
             </div>
 
             {/* Navigation Links */}
-            <div className="grid grid-cols-2 gap-2">
-              {navigation.map((item) => {
+            <div className="space-y-2">
+              {navigation.map((item, index) => {
                 const Icon = item.icon
+                
+                // Item com dropdown
+                if (item.dropdown) {
+                  return (
+                    <div key={index}>
+                      <div className="flex items-center space-x-2 rounded-md px-3 py-2 text-sm font-medium bg-muted text-muted-foreground">
+                        <Icon className="h-4 w-4" />
+                        <span>{item.name}</span>
+                      </div>
+                      <div className="ml-4 mt-1 space-y-1">
+                        {item.dropdown.map((subItem) => {
+                          const SubIcon = subItem.icon
+                          return (
+                            <Link
+                              key={subItem.href}
+                              to={subItem.href}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={`flex items-center space-x-2 rounded-md px-3 py-2 text-sm transition-colors ${
+                                isActive(subItem.href)
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                              }`}
+                            >
+                              <SubIcon className="h-4 w-4" />
+                              <span>{subItem.name}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
+                
+                // Item normal
                 return (
                   <Link
                     key={item.href}
