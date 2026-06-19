@@ -46,7 +46,7 @@ export default function Users() {
           *,
           barracas:barraca_id (
             id,
-            nome
+            name
           )
         `)
         .order('created_at', { ascending: false });
@@ -413,7 +413,7 @@ export default function Users() {
                     <p className="text-sm text-gray-600">{user.email}</p>
                     {user.barracas && (
                       <p className="text-sm text-gray-500 mt-1">
-                        Barraca: {user.barracas.nome}
+                        Barraca: {user.barracas.name}
                       </p>
                     )}
                   </div>

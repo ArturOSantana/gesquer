@@ -64,7 +64,7 @@ export function AuthProvider({ children }) {
           active,
           barracas:barraca_id (
             id,
-            nome
+            name
           )
         `)
         .eq('id', userId)

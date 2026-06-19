@@ -4,8 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Loader2, LogIn, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 
 export default function Login() {
@@ -64,30 +63,32 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-      <Card className="w-full max-w-md shadow-xl">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-              <LogIn className="w-8 h-8 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">QuermesseOn</CardTitle>
-          <CardDescription>
-            Entre com suas credenciais para acessar o sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md px-6">
+        {/* Logo e Título */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-semibold text-gray-900 mb-2">
+            QuermesseOn
+          </h1>
+          <p className="text-sm text-gray-600">
+            Sistema de Gestão de Quermesse
+          </p>
+        </div>
+
+        {/* Card de Login */}
+        <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="rounded-md">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -97,11 +98,14 @@ export default function Login() {
                 disabled={isLoading}
                 autoComplete="email"
                 autoFocus
+                className="h-11 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Senha
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -110,12 +114,13 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={isLoading}
                 autoComplete="current-password"
+                className="h-11 rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
               />
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -124,22 +129,19 @@ export default function Login() {
                   Entrando...
                 </>
               ) : (
-                <>
-                  <LogIn className="mr-2 h-4 w-4" />
-                  Entrar
-                </>
+                'Entrar'
               )}
             </Button>
           </form>
+        </div>
 
-          <div className="mt-6 text-center text-sm text-gray-600">
-            <p>Credenciais padrão para teste:</p>
-            <p className="font-mono text-xs mt-2">
-              admin@quermesse.com / admin123
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Footer */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500">
+            © 2024 QuermesseOn. Todos os direitos reservados.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
