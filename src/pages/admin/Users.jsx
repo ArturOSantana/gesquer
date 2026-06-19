@@ -262,8 +262,8 @@ export default function Users() {
         console.log('✅ Usuário criado com sucesso:', authData.user.id);
         console.log('📧 Email confirmado automaticamente!');
 
-        // Inserir na tabela users
-        const { error: dbError } = await supabase
+        // Inserir na tabela users usando supabaseAdmin para evitar erro de RLS
+        const { error: dbError } = await supabaseAdmin
           .from('users')
           .insert({
             id: authData.user.id,
