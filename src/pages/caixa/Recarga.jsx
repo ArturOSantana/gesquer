@@ -37,6 +37,25 @@ export default function Recarga() {
   const [loading, setLoading] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
 
+  const isFlowLocked = step !== 'scan' && step !== 'success';
+  const shouldBlockExit = step === 'register' || step === 'confirm' || loading;
+  const hasValidRechargeAmount = rechargeAmount && parseFloat(rechargeAmount) > 0;
+
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (!shouldBlockExit) return;
+
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [shouldBlockExit]);
+
   // Quando escaneia QR Code
   async function handleQRScanned(qrData) {
     setScannedQR(qrData);
@@ -187,15 +206,12 @@ export default function Recarga() {
 
   // Voltar
   function handleBack() {
-    if (step === 'register' || step === 'confirm') {
-      setStep('scan');
-      setScannedQR(null);
-      setCardData(null);
-      setClientData({ name: '', phone: '' });
-      setRechargeAmount('');
-    } else {
-      navigate('/caixa');
+    if (shouldBlockExit) {
+      toast.error('Finalize ou cancele o fluxo atual pelos botões da tela para evitar saída acidental');
+      return;
     }
+
+    navigate('/caixa');
   }
 
   // Formatar telefone
@@ -219,7 +235,7 @@ export default function Recarga() {
       {/* Header fixo */}
       <div className="sticky top-0 z-10 bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-4 max-w-2xl">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <Button
                 variant="ghost"
@@ -241,7 +257,7 @@ export default function Recarga() {
             </div>
             
             {/* Indicador de progresso */}
-            <div className="flex gap-2">
+            <div className="flex gap-2 shrink-0">
               <div className={`h-2 w-2 rounded-full ${step === 'scan' ? 'bg-blue-600' : 'bg-gray-300'}`} />
               <div className={`h-2 w-2 rounded-full ${step === 'register' || step === 'confirm' ? 'bg-blue-600' : 'bg-gray-300'}`} />
               <div className={`h-2 w-2 rounded-full ${step === 'success' ? 'bg-green-600' : 'bg-gray-300'}`} />
@@ -251,7 +267,15 @@ export default function Recarga() {
       </div>
 
       {/* Conteúdo */}
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <div className="container mx-auto px-4 py-6 max-w-2xl pb-24">
+        {isFlowLocked && (
+          <Alert className="mb-4 border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <strong>Fluxo protegido:</strong> use os botões da própria tela para cancelar ou concluir a recarga. Isso evita sair acidentalmente no meio do processo.
+            </AlertDescription>
+          </Alert>
+        )}
         {/* PASSO 1: Escanear QR Code */}
         {step === 'scan' && (
           <div className="space-y-4">
@@ -379,7 +403,7 @@ export default function Recarga() {
                 </div>
 
                 {/* Botões */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
@@ -522,7 +546,7 @@ export default function Recarga() {
             )}
 
             {/* Botões de Ação */}
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col-reverse sm:flex-row gap-3 pt-2">
               <Button
                 variant="outline"
                 onClick={handleBack}
@@ -598,7 +622,7 @@ export default function Recarga() {
               </AlertDescription>
             </Alert>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button
                 variant="outline"
                 onClick={() => navigate('/caixa')}
