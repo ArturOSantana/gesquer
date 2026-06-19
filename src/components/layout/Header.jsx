@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, BarChart3, Menu } from 'lucide-react'
+import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, Grid, BarChart3, Menu } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Header() {
@@ -16,6 +16,7 @@ export default function Header() {
     { name: 'Histórico', href: '/history', icon: History },
     { name: 'Barracas', href: '/barracas', icon: Store },
     { name: 'Cartões', href: '/cards', icon: CreditCard },
+    { name: 'Gerar Lotes', href: '/admin/generate-batch', icon: Grid },
     { name: 'Relatórios', href: '/reports', icon: BarChart3 },
   ]
 
