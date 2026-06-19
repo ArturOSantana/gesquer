@@ -869,6 +869,296 @@ $$ LANGUAGE plpgsql;
 
 COMMENT ON FUNCTION process_transfer IS 'Realiza transferência entre cartões com validação e idempotência';
 
+-- ----------------------------------------------------------------------------
+-- Procedure: bind_card_to_client
+-- Vincula um cartão pré-gerado a um cliente
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION bind_card_to_client(
+    p_card_uuid UUID,
+    p_client_name VARCHAR(255),
+    p_client_phone VARCHAR(20)
+)
+RETURNS TABLE(
+    card_id BIGINT,
+    client_id BIGINT,
+    success BOOLEAN,
+    message TEXT
+) AS $$
+DECLARE
+    v_card_id BIGINT;
+    v_card_status VARCHAR(20);
+    v_card_client_id BIGINT;
+    v_client_id BIGINT;
+    v_existing_client_id BIGINT;
+BEGIN
+    -- Valida nome do cliente
+    IF p_client_name IS NULL OR LENGTH(TRIM(p_client_name)) < 3 THEN
+        RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, false,
+            'Nome do cliente deve ter pelo menos 3 caracteres'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Valida telefone (formato brasileiro)
+    IF p_client_phone IS NOT NULL AND p_client_phone !~ '^\(\d{2}\) \d{4,5}-\d{4}$' THEN
+        RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, false,
+            'Telefone inválido. Use formato: (11) 98765-4321'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Busca o cartão e bloqueia para evitar race conditions
+    SELECT id, status, client_id INTO v_card_id, v_card_status, v_card_client_id
+    FROM cards
+    WHERE uuid = p_card_uuid
+    FOR UPDATE;
+    
+    -- Valida se cartão existe
+    IF v_card_id IS NULL THEN
+        RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, false,
+            'Cartão não encontrado'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Valida se cartão está disponível (pending = pré-gerado não vinculado)
+    IF v_card_status != 'pending' THEN
+        RETURN QUERY SELECT v_card_id, v_card_client_id, false,
+            'Cartão não está disponível para vinculação. Status: ' || v_card_status::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Valida se cartão já está vinculado
+    IF v_card_client_id IS NOT NULL THEN
+        RETURN QUERY SELECT v_card_id, v_card_client_id, false,
+            'Cartão já está vinculado a um cliente'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Verifica se já existe cliente com este telefone
+    IF p_client_phone IS NOT NULL THEN
+        SELECT id INTO v_existing_client_id
+        FROM clients
+        WHERE phone = p_client_phone;
+        
+        IF v_existing_client_id IS NOT NULL THEN
+            -- Cliente já existe, usa o existente
+            v_client_id := v_existing_client_id;
+        END IF;
+    END IF;
+    
+    -- Se cliente não existe, cria novo
+    IF v_client_id IS NULL THEN
+        INSERT INTO clients (name, phone)
+        VALUES (TRIM(p_client_name), p_client_phone)
+        RETURNING id INTO v_client_id;
+    END IF;
+    
+    -- Vincula cartão ao cliente e ativa
+    UPDATE cards
+    SET
+        client_id = v_client_id,
+        status = 'active',
+        activated_at = NOW(),
+        updated_at = NOW()
+    WHERE id = v_card_id;
+    
+    -- Retorna sucesso
+    RETURN QUERY SELECT v_card_id, v_client_id, true,
+        'Cartão vinculado com sucesso ao cliente'::TEXT;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION bind_card_to_client IS 'Vincula cartão pré-gerado a cliente novo ou existente';
+
+-- ----------------------------------------------------------------------------
+-- Procedure: transfer_card_balance
+-- Transfere saldo de um cartão antigo para um novo (substituição de cartão)
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION transfer_card_balance(
+    p_idempotency_key UUID,
+    p_old_card_uuid UUID,
+    p_new_card_uuid UUID,
+    p_description TEXT DEFAULT 'Transferência por substituição de cartão'
+)
+RETURNS TABLE(
+    old_card_id BIGINT,
+    new_card_id BIGINT,
+    transferred_amount DECIMAL(10, 2),
+    success BOOLEAN,
+    message TEXT
+) AS $$
+DECLARE
+    v_old_card_id BIGINT;
+    v_old_card_status VARCHAR(20);
+    v_old_card_balance DECIMAL(10, 2);
+    v_old_card_client_id BIGINT;
+    v_new_card_id BIGINT;
+    v_new_card_status VARCHAR(20);
+    v_new_card_client_id BIGINT;
+    v_transaction_out_id BIGINT;
+    v_transaction_in_id BIGINT;
+BEGIN
+    -- Verifica se já existe transação com esta chave de idempotência
+    SELECT id INTO v_transaction_out_id
+    FROM transactions
+    WHERE metadata->>'idempotency_key' = p_idempotency_key::TEXT
+    AND type = 'transfer_out';
+    
+    IF v_transaction_out_id IS NOT NULL THEN
+        -- Transação já processada
+        SELECT c1.id, c2.id, c1.balance
+        INTO v_old_card_id, v_new_card_id, v_old_card_balance
+        FROM cards c1, cards c2
+        WHERE c1.uuid = p_old_card_uuid AND c2.uuid = p_new_card_uuid;
+        
+        RETURN QUERY SELECT v_old_card_id, v_new_card_id, v_old_card_balance,
+            true, 'Transferência já processada anteriormente'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Busca cartão antigo e bloqueia
+    SELECT id, status, balance, client_id
+    INTO v_old_card_id, v_old_card_status, v_old_card_balance, v_old_card_client_id
+    FROM cards
+    WHERE uuid = p_old_card_uuid
+    FOR UPDATE;
+    
+    -- Valida cartão antigo
+    IF v_old_card_id IS NULL THEN
+        RETURN QUERY SELECT NULL::BIGINT, NULL::BIGINT, NULL::DECIMAL, false,
+            'Cartão antigo não encontrado'::TEXT;
+        RETURN;
+    END IF;
+    
+    IF v_old_card_status != 'active' THEN
+        RETURN QUERY SELECT v_old_card_id, NULL::BIGINT, v_old_card_balance, false,
+            'Cartão antigo não está ativo'::TEXT;
+        RETURN;
+    END IF;
+    
+    IF v_old_card_client_id IS NULL THEN
+        RETURN QUERY SELECT v_old_card_id, NULL::BIGINT, v_old_card_balance, false,
+            'Cartão antigo não está vinculado a um cliente'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Busca cartão novo e bloqueia
+    SELECT id, status, client_id
+    INTO v_new_card_id, v_new_card_status, v_new_card_client_id
+    FROM cards
+    WHERE uuid = p_new_card_uuid
+    FOR UPDATE;
+    
+    -- Valida cartão novo
+    IF v_new_card_id IS NULL THEN
+        RETURN QUERY SELECT v_old_card_id, NULL::BIGINT, v_old_card_balance, false,
+            'Cartão novo não encontrado'::TEXT;
+        RETURN;
+    END IF;
+    
+    IF v_new_card_status != 'pending' THEN
+        RETURN QUERY SELECT v_old_card_id, v_new_card_id, v_old_card_balance, false,
+            'Cartão novo não está disponível. Status: ' || v_new_card_status::TEXT;
+        RETURN;
+    END IF;
+    
+    IF v_new_card_client_id IS NOT NULL THEN
+        RETURN QUERY SELECT v_old_card_id, v_new_card_id, v_old_card_balance, false,
+            'Cartão novo já está vinculado a um cliente'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Valida se não é o mesmo cartão
+    IF v_old_card_id = v_new_card_id THEN
+        RETURN QUERY SELECT v_old_card_id, v_new_card_id, v_old_card_balance, false,
+            'Não é possível transferir para o mesmo cartão'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Se não há saldo, apenas vincula o novo cartão
+    IF v_old_card_balance = 0 THEN
+        -- Desativa cartão antigo
+        UPDATE cards
+        SET status = 'inactive',
+            updated_at = NOW()
+        WHERE id = v_old_card_id;
+        
+        -- Vincula e ativa cartão novo
+        UPDATE cards
+        SET client_id = v_old_card_client_id,
+            status = 'active',
+            activated_at = NOW(),
+            updated_at = NOW()
+        WHERE id = v_new_card_id;
+        
+        RETURN QUERY SELECT v_old_card_id, v_new_card_id, 0::DECIMAL, true,
+            'Cartão substituído com sucesso (sem saldo para transferir)'::TEXT;
+        RETURN;
+    END IF;
+    
+    -- Transfere saldo do cartão antigo para o novo
+    UPDATE cards
+    SET balance = 0,
+        status = 'inactive',
+        updated_at = NOW()
+    WHERE id = v_old_card_id;
+    
+    UPDATE cards
+    SET balance = v_old_card_balance,
+        client_id = v_old_card_client_id,
+        status = 'active',
+        activated_at = NOW(),
+        updated_at = NOW()
+    WHERE id = v_new_card_id;
+    
+    -- Registra transação de saída no cartão antigo
+    INSERT INTO transactions (
+        card_id,
+        type,
+        amount,
+        balance_after,
+        description,
+        metadata
+    ) VALUES (
+        v_old_card_id,
+        'transfer_out',
+        v_old_card_balance,
+        0,
+        p_description,
+        jsonb_build_object(
+            'idempotency_key', p_idempotency_key,
+            'to_card_id', v_new_card_id,
+            'transfer_type', 'card_replacement'
+        )
+    ) RETURNING id INTO v_transaction_out_id;
+    
+    -- Registra transação de entrada no cartão novo
+    INSERT INTO transactions (
+        card_id,
+        type,
+        amount,
+        balance_after,
+        description,
+        metadata
+    ) VALUES (
+        v_new_card_id,
+        'transfer_in',
+        v_old_card_balance,
+        v_old_card_balance,
+        p_description,
+        jsonb_build_object(
+            'idempotency_key', p_idempotency_key,
+            'from_card_id', v_old_card_id,
+            'transfer_type', 'card_replacement'
+        )
+    ) RETURNING id INTO v_transaction_in_id;
+    
+    -- Retorna sucesso
+    RETURN QUERY SELECT v_old_card_id, v_new_card_id, v_old_card_balance, true,
+        'Saldo transferido e cartão substituído com sucesso'::TEXT;
+END;
+$$ LANGUAGE plpgsql;
+
+COMMENT ON FUNCTION transfer_card_balance IS 'Transfere saldo de cartão antigo para novo (substituição)';
+
 -- ============================================================================
 -- 7. DADOS INICIAIS (SEED)
 -- ============================================================================
