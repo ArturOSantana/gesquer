@@ -386,7 +386,7 @@ export default function CardDetails({
                           {formatCurrency(transaction.amount)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Saldo: {formatCurrency(transaction.balance_after)}
+                          Saldo: {formatCurrency(parseFloat(transaction.balance_after) || 0)}
                         </p>
                       </div>
                     </div>

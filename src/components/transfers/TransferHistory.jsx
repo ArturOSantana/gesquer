@@ -221,15 +221,16 @@ export function TransferHistory({ cardId = null, limit = 20 }) {
                           )}
                         </div>
 
-                        {transfer.previous_balance !== null && transfer.new_balance !== null && (
+                        {(transfer.previous_balance !== null && transfer.previous_balance !== undefined) &&
+                         (transfer.new_balance !== null && transfer.new_balance !== undefined) && (
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <span>Saldo:</span>
                             <span className="font-mono">
-                              {formatCurrency(transfer.previous_balance)}
+                              {formatCurrency(parseFloat(transfer.previous_balance) || 0)}
                             </span>
                             <span>→</span>
                             <span className={`font-mono font-semibold ${colorClass}`}>
-                              {formatCurrency(transfer.new_balance)}
+                              {formatCurrency(parseFloat(transfer.new_balance) || 0)}
                             </span>
                           </div>
                         )}

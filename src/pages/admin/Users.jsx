@@ -33,6 +33,7 @@ export default function Users() {
   const { profile } = useAuth();
 
   useEffect(() => {
+    console.log('🚀 useEffect executado - carregando usuários e barracas');
     loadUsers();
     loadBarracas();
   }, []);
@@ -67,16 +68,36 @@ export default function Users() {
 
   async function loadBarracas() {
     try {
+      console.log('🔍 Carregando barracas...');
+      
       const { data, error } = await supabase
         .from('barracas')
-        .select('id, name')
-        .eq('active', true)
+        .select('id, name, active')
         .order('name');
 
-      if (error) throw error;
-      setBarracas(data || []);
+      console.log('📊 Resposta da query:', { data, error });
+
+      if (error) {
+        console.error('❌ Erro na query:', error);
+        throw error;
+      }
+
+      // Filtrar apenas barracas ativas
+      const barracasAtivas = (data || []).filter(b => b.active === true);
+      console.log('✅ Barracas ativas encontradas:', barracasAtivas.length, barracasAtivas);
+      
+      setBarracas(barracasAtivas);
+      
+      if (barracasAtivas.length === 0) {
+        console.warn('⚠️ Nenhuma barraca ativa encontrada no banco de dados');
+      }
     } catch (error) {
-      console.error('Erro ao carregar barracas:', error);
+      console.error('❌ Erro ao carregar barracas:', error);
+      toast({
+        title: 'Aviso',
+        description: 'Não foi possível carregar as barracas. Verifique se existem barracas ativas cadastradas.',
+        variant: 'destructive',
+      });
     }
   }
 
@@ -396,12 +417,15 @@ export default function Users() {
                     onValueChange={(value) => setFormData({ ...formData, barraca_id: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue  />
+                      <SelectValue placeholder={barracas.length === 0 ? "Nenhuma barraca ativa" : "Selecione uma barraca"} />
                     </SelectTrigger>
                     <SelectContent>
                       {barracas.length === 0 ? (
-                        <div className="p-2 text-sm text-muted-foreground text-center">
-                          Nenhuma barraca ativa encontrada
+                        <div className="p-4 text-sm text-center">
+                          <p className="text-muted-foreground mb-2">Nenhuma barraca ativa encontrada</p>
+                          <p className="text-xs text-gray-500">
+                            Cadastre barracas ativas antes de criar usuários do tipo Operador de Barraca
+                          </p>
                         </div>
                       ) : (
                         barracas.map((barraca) => (
@@ -412,6 +436,11 @@ export default function Users() {
                       )}
                     </SelectContent>
                   </Select>
+                  {barracas.length === 0 && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠️ Você precisa ter pelo menos uma barraca ativa para criar este tipo de usuário
+                    </p>
+                  )}
                 </div>
               )}
 

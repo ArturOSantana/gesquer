@@ -11,12 +11,17 @@ export function cn(...inputs) {
 
 /**
  * Formata valor monetário
+ * Converte strings e valores inválidos para número, com fallback para 0
  */
 export function formatCurrency(value) {
+  // Converte para número e valida
+  const numValue = parseFloat(value);
+  const safeValue = isNaN(numValue) ? 0 : numValue;
+  
   return new Intl.NumberFormat(CURRENCY_FORMAT.locale, {
     style: 'currency',
     currency: CURRENCY_FORMAT.currency,
-  }).format(value)
+  }).format(safeValue)
 }
 
 /**

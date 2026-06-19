@@ -146,15 +146,16 @@ export function TransactionItem({ transaction }) {
               </div>
 
               {/* Saldo anterior e novo */}
-              {transaction.previous_balance !== null && transaction.new_balance !== null && (
+              {(transaction.previous_balance !== null && transaction.previous_balance !== undefined) &&
+               (transaction.new_balance !== null && transaction.new_balance !== undefined) && (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>Saldo:</span>
                   <span className="font-mono">
-                    {formatCurrency(transaction.previous_balance)}
+                    {formatCurrency(parseFloat(transaction.previous_balance) || 0)}
                   </span>
                   <span>→</span>
                   <span className={`font-mono font-semibold ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(transaction.new_balance)}
+                    {formatCurrency(parseFloat(transaction.new_balance) || 0)}
                   </span>
                 </div>
               )}
