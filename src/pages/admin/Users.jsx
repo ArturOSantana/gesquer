@@ -69,9 +69,9 @@ export default function Users() {
     try {
       const { data, error } = await supabase
         .from('barracas')
-        .select('id, nome')
-        .eq('ativa', true)
-        .order('nome');
+        .select('id, name')
+        .eq('active', true)
+        .order('name');
 
       if (error) throw error;
       setBarracas(data || []);
@@ -172,6 +172,9 @@ export default function Users() {
           title: 'Sucesso',
           description: 'Usuário atualizado com sucesso',
         });
+
+        // Recarregar lista de usuários para refletir mudanças
+        await loadUsers();
       } else {
         // Criar novo usuário
         // Criar no Supabase Auth com metadata
@@ -326,7 +329,7 @@ export default function Users() {
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Nome completo"
+                  
                   required
                 />
               </div>
@@ -338,7 +341,7 @@ export default function Users() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@exemplo.com"
+                  
                   required
                   disabled={!!editingUser}
                 />
@@ -354,7 +357,6 @@ export default function Users() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder={editingUser ? 'Deixe em branco para manter' : 'Mínimo 6 caracteres'}
                     required={!editingUser}
                   />
                   <Button
@@ -394,14 +396,20 @@ export default function Users() {
                     onValueChange={(value) => setFormData({ ...formData, barraca_id: value })}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma barraca" />
+                      <SelectValue  />
                     </SelectTrigger>
                     <SelectContent>
-                      {barracas.map((barraca) => (
-                        <SelectItem key={barraca.id} value={barraca.id}>
-                          {barraca.nome}
-                        </SelectItem>
-                      ))}
+                      {barracas.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground text-center">
+                          Nenhuma barraca ativa encontrada
+                        </div>
+                      ) : (
+                        barracas.map((barraca) => (
+                          <SelectItem key={barraca.id} value={barraca.id}>
+                            {barraca.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -493,7 +501,7 @@ export default function Users() {
                                 O usuário <strong>{user.name}</strong> não poderá mais fazer login no sistema.
                               </p>
                               <p className="text-blue-600">
-                                ℹ️ Os dados e histórico do usuário serão mantidos para auditoria e podem ser reativados a qualquer momento.
+                                Os dados e histórico do usuário serão mantidos para auditoria e podem ser reativados a qualquer momento.
                               </p>
                             </>
                           ) : (
@@ -530,4 +538,3 @@ export default function Users() {
   );
 }
 
-// Made with Bob

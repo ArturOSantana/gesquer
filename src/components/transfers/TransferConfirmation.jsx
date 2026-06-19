@@ -243,4 +243,3 @@ export function TransferConfirmation({
   );
 }
 
-// Made with Bob

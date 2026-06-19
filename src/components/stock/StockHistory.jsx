@@ -143,7 +143,7 @@ export function StockHistory({ productId = null, barracaId = null }) {
             disabled={loading || productId !== null}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Selecione um produto" />
+              <SelectValue  />
             </SelectTrigger>
             <SelectContent>
               {products.map((product) => (
@@ -320,4 +320,3 @@ export function StockHistory({ productId = null, barracaId = null }) {
   );
 }
 
-// Made with Bob

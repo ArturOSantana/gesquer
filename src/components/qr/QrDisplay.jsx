@@ -192,7 +192,7 @@ export default function QrDisplay({
       <Card className="border-amber-200 bg-amber-50">
         <CardContent className="pt-6">
           <p className="text-sm text-amber-800">
-            <strong>⚠️ Importante:</strong> Não compartilhe este QR Code com terceiros. 
+            <strong>Importante:</strong> Não compartilhe este QR Code com terceiros.
             Ele dá acesso ao saldo e transações do cartão.
           </p>
         </CardContent>
@@ -201,4 +201,3 @@ export default function QrDisplay({
   );
 }
 
-// Made with Bob

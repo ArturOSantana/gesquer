@@ -185,7 +185,7 @@ export function ProductForm({
               id="name"
               value={formData.name}
               onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Ex: Refrigerante Lata"
+              
               disabled={loading}
               className={errors.name ? 'border-destructive' : ''}
             />
@@ -201,7 +201,7 @@ export function ProductForm({
               id="description"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Descrição opcional do produto"
+              
               disabled={loading}
             />
           </div>
@@ -217,7 +217,7 @@ export function ProductForm({
               disabled={loading || (product && product.barraca_id)}
             >
               <SelectTrigger className={errors.barraca_id ? 'border-destructive' : ''}>
-                <SelectValue placeholder="Selecione a barraca" />
+                <SelectValue  />
               </SelectTrigger>
               <SelectContent>
                 {barracas.map((barraca) => (
@@ -251,7 +251,7 @@ export function ProductForm({
                 min="0"
                 value={formData.price}
                 onChange={(e) => handleChange('price', e.target.value)}
-                placeholder="0.00"
+                
                 disabled={loading}
                 className={errors.price ? 'border-destructive' : ''}
               />
@@ -271,7 +271,7 @@ export function ProductForm({
                 min="0"
                 value={formData.stock_quantity}
                 onChange={(e) => handleChange('stock_quantity', e.target.value)}
-                placeholder="0"
+                
                 disabled={loading}
                 className={errors.stock_quantity ? 'border-destructive' : ''}
               />
@@ -294,7 +294,7 @@ export function ProductForm({
                 min="0"
                 value={formData.min_stock}
                 onChange={(e) => handleChange('min_stock', e.target.value)}
-                placeholder="0"
+                
                 disabled={loading}
                 className={errors.min_stock ? 'border-destructive' : ''}
               />
@@ -345,4 +345,3 @@ export function ProductForm({
   );
 }
 
-// Made with Bob

@@ -188,4 +188,3 @@ export default function TransferBalance() {
   );
 }
 
-// Made with Bob

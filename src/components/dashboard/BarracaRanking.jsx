@@ -91,4 +91,3 @@ export function BarracaRanking({ data }) {
   );
 }
 
-// Made with Bob

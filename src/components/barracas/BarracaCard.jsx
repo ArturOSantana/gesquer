@@ -104,4 +104,3 @@ export function BarracaCard({ barraca, onEdit, onDelete, onToggleStatus, stats }
   );
 }
 
-// Made with Bob

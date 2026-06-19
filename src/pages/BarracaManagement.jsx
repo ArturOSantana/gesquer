@@ -217,4 +217,3 @@ export default function BarracaManagement() {
   );
 }
 
-// Made with Bob

@@ -67,4 +67,3 @@ export function StatCard({
   );
 }
 
-// Made with Bob

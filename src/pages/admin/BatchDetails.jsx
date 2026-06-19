@@ -322,4 +322,3 @@ export default function BatchDetails() {
   );
 }
 
-// Made with Bob

@@ -296,4 +296,3 @@ export default function TransactionHistory() {
   );
 }
 
-// Made with Bob

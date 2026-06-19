@@ -152,7 +152,7 @@ export default function CardBalance({
                         <Input
                           id="amount"
                           type="text"
-                          placeholder="0.00"
+                          
                           value={rechargeAmount}
                           onChange={handleAmountChange}
                           className="pl-9"
@@ -227,9 +227,9 @@ export default function CardBalance({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {card.status === 'active' ? '✓ Ativo' : 
-               card.status === 'inactive' ? '✗ Inativo' : 
-               card.status === 'blocked' ? '🔒 Bloqueado' : card.status}
+              {card.status === 'active' ? 'Ativo' :
+               card.status === 'inactive' ? 'Inativo' :
+               card.status === 'blocked' ? 'Bloqueado' : card.status}
             </div>
           </CardContent>
         </Card>
@@ -252,4 +252,3 @@ export default function CardBalance({
   );
 }
 
-// Made with Bob

@@ -123,7 +123,7 @@ class ErrorBoundary extends React.Component {
               {this.state.isEnvError && (
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
                   <p className="text-sm text-blue-800">
-                    <strong>📚 Documentação:</strong> Consulte o arquivo{' '}
+                    <strong>Documentação:</strong> Consulte o arquivo{' '}
                     <code className="bg-blue-100 px-1 py-0.5 rounded">VERCEL-DEPLOY.md</code>{' '}
                     para instruções completas de configuração.
                   </p>
@@ -141,4 +141,3 @@ class ErrorBoundary extends React.Component {
 
 export default ErrorBoundary
 
-// Made with Bob

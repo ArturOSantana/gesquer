@@ -100,7 +100,7 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Ex: Barraca de Doces"
+              
               disabled={loading}
               className={errors.name ? 'border-red-500' : ''}
             />
@@ -120,7 +120,7 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              placeholder="Descreva os produtos ou serviços oferecidos"
+              
               disabled={loading}
               rows={3}
               className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -135,7 +135,7 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
               name="responsible"
               value={formData.responsible}
               onChange={handleChange}
-              placeholder="Nome do responsável pela barraca"
+              
               disabled={loading}
             />
           </div>
@@ -196,4 +196,3 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
   );
 }
 
-// Made with Bob

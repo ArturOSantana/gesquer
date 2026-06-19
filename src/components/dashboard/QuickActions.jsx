@@ -7,42 +7,42 @@ export function QuickActions() {
 
   const actions = [
     {
-      icon: '🛒',
+      icon: '$',
       title: 'Nova Venda',
       description: 'Registrar venda',
       path: '/sale',
       color: 'bg-green-500 hover:bg-green-600',
     },
     {
-      icon: '💳',
+      icon: '♦',
       title: 'Novo Cartão',
       description: 'Cadastrar cartão',
       path: '/cards',
       color: 'bg-blue-500 hover:bg-blue-600',
     },
     {
-      icon: '💰',
+      icon: '+',
       title: 'Recarregar',
       description: 'Adicionar créditos',
       path: '/scan-card',
       color: 'bg-purple-500 hover:bg-purple-600',
     },
     {
-      icon: '📦',
+      icon: '□',
       title: 'Estoque',
       description: 'Gerenciar produtos',
       path: '/stock',
       color: 'bg-orange-500 hover:bg-orange-600',
     },
     {
-      icon: '🏪',
+      icon: '⌂',
       title: 'Barracas',
       description: 'Gerenciar barracas',
       path: '/barracas',
       color: 'bg-pink-500 hover:bg-pink-600',
     },
     {
-      icon: '📊',
+      icon: '≡',
       title: 'Relatórios',
       description: 'Ver relatórios',
       path: '/reports',
@@ -80,4 +80,3 @@ export function QuickActions() {
   );
 }
 
-// Made with Bob

@@ -229,4 +229,3 @@ export function ProductCard({ product, onEdit, onDelete, onToggleStatus, showSta
   );
 }
 
-// Made with Bob

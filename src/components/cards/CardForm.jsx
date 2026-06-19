@@ -265,7 +265,7 @@ export default function CardForm({
                 id="name"
                 name="name"
                 type="text"
-                placeholder="João da Silva"
+                
                 value={formData.name}
                 onChange={handleChange}
                 className={`pl-9 ${errors.name ? 'border-destructive' : ''}`}
@@ -287,7 +287,7 @@ export default function CardForm({
                 id="phone"
                 name="phone"
                 type="tel"
-                placeholder="(11) 98765-4321"
+                
                 value={formData.phone}
                 onChange={handlePhoneChange}
                 className={`pl-9 ${errors.phone ? 'border-destructive' : ''}`}
@@ -308,7 +308,7 @@ export default function CardForm({
                 id="email"
                 name="email"
                 type="email"
-                placeholder="joao@exemplo.com"
+                
                 value={formData.email}
                 onChange={handleChange}
                 className={`pl-9 ${errors.email ? 'border-destructive' : ''}`}
@@ -329,7 +329,7 @@ export default function CardForm({
                 id="cpf"
                 name="cpf"
                 type="text"
-                placeholder="123.456.789-00"
+                
                 value={formData.cpf}
                 onChange={handleCpfChange}
                 className={`pl-9 ${errors.cpf ? 'border-destructive' : ''}`}
@@ -354,7 +354,7 @@ export default function CardForm({
                   step="0.01"
                   min="0"
                   max="10000"
-                  placeholder="0.00"
+                  
                   value={formData.initialBalance}
                   onChange={handleChange}
                   className={`pl-9 ${errors.initialBalance ? 'border-destructive' : ''}`}
@@ -420,4 +420,3 @@ export default function CardForm({
   );
 }
 
-// Made with Bob

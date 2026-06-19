@@ -195,7 +195,7 @@ export function TransferForm({ onSubmit, loading = false }) {
           <div className="flex gap-2">
             <div className="flex-1">
               <Input
-                placeholder="UUID ou telefone"
+                
                 value={searchFrom}
                 onChange={(e) => {
                   setSearchFrom(e.target.value);
@@ -260,7 +260,7 @@ export function TransferForm({ onSubmit, loading = false }) {
           <div className="flex gap-2">
             <div className="flex-1">
               <Input
-                placeholder="UUID ou telefone"
+                
                 value={searchTo}
                 onChange={(e) => {
                   setSearchTo(e.target.value);
@@ -330,7 +330,7 @@ export function TransferForm({ onSubmit, loading = false }) {
                 step="0.01"
                 min="0.01"
                 max={fromCard.balance}
-                placeholder="0.00"
+                
                 value={amount}
                 onChange={(e) => {
                   setAmount(e.target.value);
@@ -350,7 +350,7 @@ export function TransferForm({ onSubmit, loading = false }) {
               </Label>
               <Input
                 id="description"
-                placeholder="Ex: Transferência de saldo"
+                
                 value={description}
                 onChange={(e) => {
                   setDescription(e.target.value);
@@ -420,4 +420,3 @@ export function TransferForm({ onSubmit, loading = false }) {
   );
 }
 
-// Made with Bob

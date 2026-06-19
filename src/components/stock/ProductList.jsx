@@ -147,7 +147,7 @@ export function ProductList({ barracaId = null, showStats = false }) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar produtos..."
+            
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -167,7 +167,7 @@ export function ProductList({ barracaId = null, showStats = false }) {
         <div className="w-full sm:w-auto">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Status" />
+              <SelectValue  />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os status</SelectItem>
@@ -182,7 +182,7 @@ export function ProductList({ barracaId = null, showStats = false }) {
           <div className="w-full sm:w-auto">
             <Select value={barracaFilter} onValueChange={setBarracaFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Barraca" />
+                <SelectValue  />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as barracas</SelectItem>
@@ -200,7 +200,7 @@ export function ProductList({ barracaId = null, showStats = false }) {
         <div className="w-full sm:w-auto">
           <Select value={stockFilter} onValueChange={setStockFilter}>
             <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Estoque" />
+              <SelectValue  />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os estoques</SelectItem>
@@ -285,4 +285,3 @@ export function ProductList({ barracaId = null, showStats = false }) {
   );
 }
 
-// Made with Bob

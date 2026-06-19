@@ -249,4 +249,3 @@ export function TransactionList({
   );
 }
 
-// Made with Bob

@@ -215,4 +215,3 @@ Obrigado pela preferência!
   );
 }
 
-// Made with Bob

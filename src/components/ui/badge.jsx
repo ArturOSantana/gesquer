@@ -34,4 +34,3 @@ function Badge({ className, variant, ...props }) {
 
 export { Badge, badgeVariants }
 
-// Made with Bob

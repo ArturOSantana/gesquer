@@ -147,4 +147,3 @@ export function SaleCart({ items, onUpdateQuantity, onRemoveItem, onClear, onChe
   );
 }
 
-// Made with Bob

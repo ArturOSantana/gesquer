@@ -71,9 +71,6 @@ export default function Home() {
         <h1 className="text-4xl font-bold mb-4 text-foreground">
           QuermesseOn!
         </h1>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Gestão completa de cartões, vendas e estoque
-        </p>
       </div>
 
       {/* Quick Stats */}
@@ -163,4 +160,3 @@ export default function Home() {
   );
 }
 
-// Made with Bob

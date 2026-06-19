@@ -96,7 +96,7 @@ export default function SupabaseConfigWarning() {
                     rel="noopener noreferrer"
                     className="flex items-center justify-center"
                   >
-                    📚 Ver Documentação
+                    Ver Documentação
                   </a>
                 </Button>
               </>
@@ -120,7 +120,7 @@ export default function SupabaseConfigWarning() {
                     rel="noopener noreferrer"
                     className="flex items-center justify-center"
                   >
-                    📚 Guia de Deploy
+                    Guia de Deploy
                   </a>
                 </Button>
               </>
@@ -130,7 +130,7 @@ export default function SupabaseConfigWarning() {
           <div className="pt-4 border-t">
             <details className="cursor-pointer">
               <summary className="text-sm font-medium text-gray-700 hover:text-gray-900">
-                ℹ️ Por que estou vendo isso?
+                Por que estou vendo isso?
               </summary>
               <div className="mt-2 text-sm text-gray-600 space-y-2">
                 <p>
@@ -143,7 +143,7 @@ export default function SupabaseConfigWarning() {
                 </p>
                 {isProduction && (
                   <p className="text-yellow-700 font-medium">
-                    ⚠️ Em produção, essas variáveis devem ser configuradas no painel da Vercel,
+                    Em produção, essas variáveis devem ser configuradas no painel da Vercel,
                     não em arquivos .env que são ignorados pelo Git.
                   </p>
                 )}
@@ -156,4 +156,3 @@ export default function SupabaseConfigWarning() {
   )
 }
 
-// Made with Bob

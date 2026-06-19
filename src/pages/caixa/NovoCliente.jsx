@@ -380,7 +380,7 @@ export default function NovoCliente() {
                     id="name"
                     name="name"
                     type="text"
-                    placeholder="João da Silva"
+                    
                     value={formData.name}
                     onChange={handleChange}
                     className={`pl-9 ${errors.name ? 'border-destructive' : ''}`}
@@ -403,7 +403,7 @@ export default function NovoCliente() {
                     id="phone"
                     name="phone"
                     type="tel"
-                    placeholder="(11) 98765-4321"
+                    
                     value={formData.phone}
                     onChange={handlePhoneChange}
                     className={`pl-9 ${errors.phone ? 'border-destructive' : ''}`}
@@ -512,7 +512,7 @@ export default function NovoCliente() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>✅ Cartão Ativado com Sucesso!</strong>
+                <strong>Cartão Ativado com Sucesso!</strong>
                 <p className="mt-2 text-sm">
                   O cartão foi vinculado ao cliente e está agora <strong>ATIVO</strong>.
                   O cliente já pode fazer recargas e compras.
@@ -549,4 +549,3 @@ export default function NovoCliente() {
   );
 }
 
-// Made with Bob

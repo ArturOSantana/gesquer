@@ -131,7 +131,7 @@ export default function Reports() {
               <Label htmlFor="barraca">Barraca</Label>
               <Select value={selectedBarraca} onValueChange={setSelectedBarraca}>
                 <SelectTrigger id="barraca">
-                  <SelectValue placeholder="Todas as barracas" />
+                  <SelectValue  />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas as barracas</SelectItem>
@@ -278,4 +278,3 @@ export default function Reports() {
   );
 }
 
-// Made with Bob

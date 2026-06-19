@@ -185,4 +185,3 @@ export function SaleConfirmation({
   );
 }
 
-// Made with Bob

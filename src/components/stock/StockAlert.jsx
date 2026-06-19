@@ -284,4 +284,3 @@ export function StockAlert({ barracaId = null, onEditProduct }) {
   );
 }
 
-// Made with Bob

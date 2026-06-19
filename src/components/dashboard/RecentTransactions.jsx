@@ -14,15 +14,15 @@ export function RecentTransactions({ data }) {
   const getTransactionIcon = (type) => {
     switch (type) {
       case 'sale':
-        return '🛒';
+        return '$';
       case 'recharge':
-        return '💰';
+        return '+';
       case 'transfer':
-        return '🔄';
+        return '→';
       case 'refund':
-        return '↩️';
+        return '←';
       default:
-        return '📝';
+        return '•';
     }
   };
 
@@ -145,4 +145,3 @@ export function RecentTransactions({ data }) {
   );
 }
 
-// Made with Bob

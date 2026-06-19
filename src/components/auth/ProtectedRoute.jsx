@@ -6,7 +6,7 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
   const { isAuthenticated, profile, loading } = useAuth();
   const location = useLocation();
 
-  console.log('🛡️ ProtectedRoute:', {
+  console.log('ProtectedRoute:', {
     path: location.pathname,
     loading,
     isAuthenticated,
@@ -29,13 +29,13 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // Redireciona para login se não estiver autenticado
   if (!isAuthenticated) {
-    console.log('❌ Não autenticado, redirecionando para /login');
+    console.log('Não autenticado, redirecionando para /login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Verifica se o usuário tem permissão para acessar a rota
   if (allowedRoles.length > 0 && !allowedRoles.includes(profile?.role)) {
-    console.log('⚠️ Sem permissão, redirecionando...');
+    console.log('Sem permissão, redirecionando...');
     // Redireciona para a página inicial do perfil do usuário
     const redirectMap = {
       superadmin: '/dashboard',
@@ -45,14 +45,13 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     };
 
     const redirectTo = redirectMap[profile?.role] || '/';
-    console.log('🔀 Redirecionando para:', redirectTo);
+    console.log('Redirecionando para:', redirectTo);
     
     return <Navigate to={redirectTo} replace />;
   }
 
   // Usuário autenticado e com permissão
-  console.log('✅ Acesso permitido');
+  console.log('Acesso permitido');
   return children;
 }
 
-// Made with Bob

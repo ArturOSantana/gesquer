@@ -43,4 +43,3 @@ export default function GenerateBatch() {
   );
 }
 
-// Made with Bob

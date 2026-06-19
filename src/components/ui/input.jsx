@@ -18,4 +18,3 @@ Input.displayName = "Input"
 
 export { Input }
 
-// Made with Bob

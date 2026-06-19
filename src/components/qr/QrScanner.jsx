@@ -432,7 +432,7 @@ export default function QrScanner({
               <Input
                 id="manual-uuid"
                 type="text"
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                
                 value={manualUuid}
                 onChange={(e) => setManualUuid(e.target.value)}
                 className="font-mono text-sm min-h-[44px]"
@@ -550,4 +550,3 @@ export default function QrScanner({
   );
 }
 
-// Made with Bob

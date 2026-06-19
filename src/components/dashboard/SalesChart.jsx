@@ -105,4 +105,3 @@ export function SalesChart({ data, type = 'line', title, description }) {
   );
 }
 
-// Made with Bob

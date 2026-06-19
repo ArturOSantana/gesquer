@@ -291,7 +291,7 @@ export default function Sale() {
             loading={barracasLoading}
             required
             label="Selecione a Barraca"
-            placeholder="Escolha a barraca para realizar a venda"
+            
           />
         )}
 
@@ -420,4 +420,3 @@ export default function Sale() {
   );
 }
 
-// Made with Bob

@@ -41,7 +41,7 @@ export function BatchGenerator() {
             max="1000"
             value={quantity}
             onChange={(e) => setQuantity(parseInt(e.target.value, 10) || 0)}
-            placeholder="Ex: 50"
+            
           />
           <p className="text-sm text-gray-500">
             Mínimo: 1 | Máximo: 1000
@@ -54,7 +54,7 @@ export function BatchGenerator() {
             id="description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Ex: Lote para evento de Natal"
+            
           />
         </div>
       </div>
@@ -76,4 +76,3 @@ export function BatchGenerator() {
   );
 }
 
-// Made with Bob

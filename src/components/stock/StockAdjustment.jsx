@@ -214,7 +214,7 @@ export function StockAdjustment({
                     setErrors(prev => ({ ...prev, quantity: null }));
                   }
                 }}
-                placeholder="Digite a quantidade"
+                
                 disabled={loading}
                 className={errors.quantity ? 'border-destructive' : ''}
               />
@@ -237,7 +237,7 @@ export function StockAdjustment({
                     setErrors(prev => ({ ...prev, reason: null }));
                   }
                 }}
-                placeholder="Ex: Reposição de estoque, Perda, Doação..."
+                
                 disabled={loading}
                 className={errors.reason ? 'border-destructive' : ''}
               />
@@ -266,12 +266,12 @@ export function StockAdjustment({
                 </div>
                 {operation === 'subtract' && newStock === 0 && (
                   <p className="text-xs text-yellow-600 mt-2">
-                    ⚠️ O produto ficará sem estoque
+                    Atenção: O produto ficará sem estoque
                   </p>
                 )}
                 {newStock <= product.min_stock && newStock > 0 && (
                   <p className="text-xs text-yellow-600 mt-2">
-                    ⚠️ O estoque ficará abaixo do mínimo ({product.min_stock})
+                    Atenção: O estoque ficará abaixo do mínimo ({product.min_stock})
                   </p>
                 )}
               </div>
@@ -298,4 +298,3 @@ export function StockAdjustment({
   );
 }
 
-// Made with Bob

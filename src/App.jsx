@@ -45,9 +45,9 @@ function App() {
                 }
               />
 
-              {/* Dashboard - SuperAdmin, Admin e Caixa */}
+              {/* Visão - SuperAdmin, Admin e Caixa */}
               <Route
-                path="dashboard"
+                path="visao"
                 element={
                   <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
                     <Dashboard />

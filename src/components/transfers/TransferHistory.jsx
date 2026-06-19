@@ -264,4 +264,3 @@ export function TransferHistory({ cardId = null, limit = 20 }) {
   );
 }
 
-// Made with Bob

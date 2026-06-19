@@ -8,15 +8,15 @@ export function AlertsPanel({ data }) {
   const getAlertIcon = (type) => {
     switch (type) {
       case 'error':
-        return '🚨';
+        return '!';
       case 'warning':
-        return '⚠️';
+        return '!';
       case 'info':
-        return 'ℹ️';
+        return 'i';
       case 'success':
-        return '✅';
+        return 'OK';
       default:
-        return '📢';
+        return '•';
     }
   };
 
@@ -66,7 +66,6 @@ export function AlertsPanel({ data }) {
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="text-4xl mb-2">✨</div>
             <p className="text-muted-foreground">
               Tudo certo! Nenhum alerta no momento.
             </p>
@@ -119,4 +118,3 @@ export function AlertsPanel({ data }) {
   );
 }
 
-// Made with Bob

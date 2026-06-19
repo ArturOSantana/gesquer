@@ -112,7 +112,7 @@ export function TransactionFilter({
               disabled={disabled}
             >
               <SelectTrigger id="type">
-                <SelectValue placeholder="Todos os tipos" />
+                <SelectValue  />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todos os tipos</SelectItem>
@@ -134,7 +134,7 @@ export function TransactionFilter({
               disabled={disabled}
             >
               <SelectTrigger id="barraca">
-                <SelectValue placeholder="Todas as barracas" />
+                <SelectValue  />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todas as barracas</SelectItem>
@@ -155,7 +155,7 @@ export function TransactionFilter({
               <Input
                 id="card_id"
                 type="text"
-                placeholder="Digite o UUID do cartão"
+                
                 value={localFilters.card_id}
                 onChange={(e) => handleFilterChange('card_id', e.target.value)}
                 disabled={disabled}
@@ -215,4 +215,3 @@ export function TransactionFilter({
   );
 }
 
-// Made with Bob

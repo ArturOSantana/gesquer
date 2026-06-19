@@ -49,7 +49,7 @@ export default function Header() {
     // Menu para SUPERADMIN - Acesso completo com Admin
     if (profile.role === 'superadmin') {
       return [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Visão', href: '/visao', icon: LayoutDashboard },
         {
           name: 'Caixa',
           icon: Wallet,
@@ -91,7 +91,7 @@ export default function Header() {
     // Menu para ADMIN - Sem acesso a Admin (Usuários e Gerar Lote)
     if (profile.role === 'admin') {
       return [
-        { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+        { name: 'Visão', href: '/visao', icon: LayoutDashboard },
         {
           name: 'Caixa',
           icon: Wallet,

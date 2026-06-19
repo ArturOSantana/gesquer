@@ -95,7 +95,7 @@ export default function BatchList() {
                   id="createdBy"
                   value={filters.createdBy}
                   onChange={(event) => handleFilterChange('createdBy', event.target.value)}
-                  placeholder="Nome ou identificador"
+                  
                   className="pl-9"
                 />
               </div>
@@ -208,4 +208,3 @@ export default function BatchList() {
   );
 }
 
-// Made with Bob

@@ -114,7 +114,7 @@ export function TransactionItem({ transaction }) {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Hash className="h-3 w-3" />
                   <span className="font-mono text-xs">
-                    {transaction.id.slice(0, 8)}
+                    {String(transaction.id).slice(0, 8)}
                   </span>
                 </div>
 
@@ -184,4 +184,3 @@ export function TransactionItem({ transaction }) {
   );
 }
 
-// Made with Bob
