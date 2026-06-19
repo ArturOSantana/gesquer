@@ -103,15 +103,74 @@ O sistema é configurado como Progressive Web App, permitindo:
 
 ### Vercel (Recomendado)
 
+O sistema está otimizado para deploy na Vercel com configuração automática.
+
+#### Deploy Rápido
+
+1. **Push para GitHub**
+   ```bash
+   git add .
+   git commit -m "Deploy inicial"
+   git push origin main
+   ```
+
+2. **Importar na Vercel**
+   - Acesse [vercel.com](https://vercel.com)
+   - Clique em "Add New Project"
+   - Selecione seu repositório
+   - Clique em "Import"
+
+3. **Configurar Variáveis de Ambiente** ⚠️ **IMPORTANTE**
+   
+   Na Vercel, vá em **Settings → Environment Variables** e adicione:
+   
+   ```
+   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+   VITE_SUPABASE_ANON_KEY=sua-chave-anonima-aqui
+   ```
+   
+   **Sem essas variáveis, a aplicação mostrará tela em branco!**
+
+4. **Deploy**
+   - Clique em "Deploy"
+   - Aguarde o build (1-2 minutos)
+   - Acesse a URL fornecida
+
+#### Guia Completo
+
+Para instruções detalhadas, incluindo troubleshooting e configurações avançadas, consulte:
+
+📖 **[VERCEL-DEPLOY.md](./VERCEL-DEPLOY.md)** - Guia completo de deploy
+
+#### Troubleshooting Rápido
+
+**Tela em branco após deploy?**
+- ✅ Verifique se configurou as variáveis de ambiente
+- ✅ Faça um redeploy após adicionar as variáveis
+- ✅ Verifique o console do navegador (F12) para erros
+
+**Build falhou?**
+- ✅ Teste localmente: `npm run build`
+- ✅ Verifique os logs na Vercel
+- ✅ Certifique-se que todas as dependências estão no package.json
+
+#### Deploy via CLI (Opcional)
+
 ```bash
 # Instalar Vercel CLI
 npm i -g vercel
 
+# Login
+vercel login
+
 # Deploy
 vercel
 
-# Configurar variáveis de ambiente no dashboard
+# Deploy para produção
+vercel --prod
 ```
+
+**Nota:** Ainda assim, você precisa configurar as variáveis de ambiente no dashboard da Vercel.
 
 ## 📊 Monitoramento
 

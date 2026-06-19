@@ -7,9 +7,166 @@
     <meta name="description" content="Sistema de Gestão de Quermesse - Controle de cartões, vendas e estoque" />
     <meta name="theme-color" content="#000000" />
     <title>Sistema de Quermesse</title>
+    <style>
+      /* Fallback loading screen */
+      #root:empty::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+      
+      #root:empty::after {
+        content: 'Carregando Sistema de Quermesse...';
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 1.5rem;
+        font-weight: 600;
+        text-align: center;
+        z-index: 10000;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+      }
+      
+      /* Error fallback */
+      .error-fallback {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #f3f4f6;
+        padding: 2rem;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      
+      .error-fallback.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .error-content {
+        max-width: 600px;
+        background: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+      }
+      
+      .error-title {
+        color: #dc2626;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 1rem;
+      }
+      
+      .error-message {
+        color: #374151;
+        margin-bottom: 1rem;
+        line-height: 1.6;
+      }
+      
+      .error-code {
+        background: #f3f4f6;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.875rem;
+        overflow-x: auto;
+        margin-bottom: 1rem;
+      }
+      
+      .error-button {
+        background: #3b82f6;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      
+      .error-button:hover {
+        background: #2563eb;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    
+    <!-- Error fallback (shown by script if loading fails) -->
+    <div id="error-fallback" class="error-fallback">
+      <div class="error-content">
+        <div class="error-title">⚠️ Erro ao Carregar</div>
+        <div class="error-message">
+          O sistema não pôde ser carregado. Isso pode acontecer se:
+          <ul style="margin: 0.5rem 0; padding-left: 1.5rem;">
+            <li>As variáveis de ambiente não estão configuradas</li>
+            <li>Há um erro no código JavaScript</li>
+            <li>Sua conexão com a internet está instável</li>
+          </ul>
+        </div>
+        <div class="error-code" id="error-details">
+          Carregando detalhes do erro...
+        </div>
+        <button class="error-button" onclick="window.location.reload()">
+          🔄 Recarregar Página
+        </button>
+      </div>
+    </div>
+    
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Error detection script -->
+    <script>
+      // Detectar erros de carregamento
+      window.addEventListener('error', function(e) {
+        console.error('Erro detectado:', e);
+        const errorFallback = document.getElementById('error-fallback');
+        const errorDetails = document.getElementById('error-details');
+        
+        if (errorFallback && errorDetails) {
+          errorDetails.textContent = e.message || 'Erro desconhecido';
+          errorFallback.classList.add('show');
+        }
+      });
+      
+      // Timeout para detectar se o app não carregou
+      setTimeout(function() {
+        const root = document.getElementById('root');
+        if (root && root.children.length === 0) {
+          console.warn('App não carregou após 10 segundos');
+          const errorFallback = document.getElementById('error-fallback');
+          const errorDetails = document.getElementById('error-details');
+          
+          if (errorFallback && errorDetails) {
+            errorDetails.textContent = 'O aplicativo não respondeu após 10 segundos. Verifique o console do navegador (F12) para mais detalhes.';
+            errorFallback.classList.add('show');
+          }
+        }
+      }, 10000);
+      
+      // Log de ambiente (apenas para debug)
+      console.log('🚀 Iniciando Sistema de Quermesse');
+      console.log('📍 Ambiente:', import.meta.env.MODE || 'production');
+    </script>
   </body>
 </html>

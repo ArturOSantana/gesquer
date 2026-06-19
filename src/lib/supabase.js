@@ -3,41 +3,77 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Validação de variáveis de ambiente
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('❌ Variáveis de ambiente do Supabase não configuradas!')
-  console.error('Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no arquivo .env.local')
-  throw new Error('Missing Supabase environment variables')
-}
+// Verificar se as variáveis de ambiente estão configuradas
+const isConfigured = supabaseUrl &&
+                     supabaseAnonKey &&
+                     !supabaseUrl.includes('your-project') &&
+                     !supabaseAnonKey.includes('your-anon-key')
 
-// Validação de valores placeholder
-if (supabaseUrl.includes('your-project') || supabaseAnonKey.includes('your-anon-key')) {
-  console.error('❌ Variáveis de ambiente do Supabase ainda estão com valores de exemplo!')
-  console.error('Atualize o arquivo .env.local com suas credenciais reais do Supabase')
-  console.error('Veja CONFIGURACAO-SUPABASE.md para instruções detalhadas')
-  throw new Error('Supabase environment variables not configured properly')
-}
-
-// Criar cliente Supabase com configurações otimizadas
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
-  },
-  global: {
-    headers: {
-      'x-application-name': 'quermesse-system'
-    }
-  },
-  db: {
-    schema: 'public'
+// Cliente mock para quando não estiver configurado
+const createMockClient = () => {
+  const mockError = {
+    error: {
+      message: 'Supabase não configurado. Configure as variáveis de ambiente VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY',
+      code: 'SUPABASE_NOT_CONFIGURED'
+    },
+    data: null
   }
-})
+  
+  return {
+    from: () => ({
+      select: () => Promise.resolve(mockError),
+      insert: () => Promise.resolve(mockError),
+      update: () => Promise.resolve(mockError),
+      delete: () => Promise.resolve(mockError),
+      upsert: () => Promise.resolve(mockError),
+    }),
+    auth: {
+      getSession: () => Promise.resolve(mockError),
+      signIn: () => Promise.resolve(mockError),
+      signOut: () => Promise.resolve(mockError),
+    },
+    storage: {
+      from: () => ({
+        upload: () => Promise.resolve(mockError),
+        download: () => Promise.resolve(mockError),
+      })
+    }
+  }
+}
+
+// Criar cliente Supabase ou mock
+export const supabase = isConfigured
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      },
+      global: {
+        headers: {
+          'x-application-name': 'quermesse-system'
+        }
+      },
+      db: {
+        schema: 'public'
+      }
+    })
+  : createMockClient()
+
+// Flag para verificar se está configurado
+export const isSupabaseConfigured = isConfigured
+
+// Log de status
+if (!isConfigured) {
+  console.warn('⚠️ Supabase não configurado - usando cliente mock')
+  console.warn('Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY para usar o sistema')
+} else {
+  console.log('✅ Supabase configurado corretamente')
+}
 
 /**
  * Testa a conexão com o Supabase
