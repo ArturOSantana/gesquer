@@ -18,6 +18,7 @@ import BatchList from './pages/admin/BatchList'
 import BatchDetails from './pages/admin/BatchDetails'
 import Users from './pages/admin/Users'
 import NovoCliente from './pages/caixa/NovoCliente'
+import Recarga from './pages/caixa/Recarga'
 import TransferirCartao from './pages/caixa/TransferirCartao'
 import NotFound from './pages/NotFound'
 import { Toaster } from './components/ui/toaster'
@@ -190,7 +191,7 @@ function App() {
                 path="caixa/recarga"
                 element={
                   <ProtectedRoute allowedRoles={['superadmin', 'admin', 'caixa']}>
-                    <ScanCard />
+                    <Recarga />
                   </ProtectedRoute>
                 }
               />
