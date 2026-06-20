@@ -37,10 +37,10 @@ import {
  */
 export default function TransferirCartao() {
   const navigate = useNavigate();
-  const { 
-    loading, 
+  const {
+    loading: hookLoading,
     checkCardAvailability,
-    transferCardBalance 
+    transferCardBalance
   } = useCardBinding();
 
   // Estados do fluxo
@@ -57,6 +57,7 @@ export default function TransferirCartao() {
 
   const [submitError, setSubmitError] = useState(null);
   const [transferResult, setTransferResult] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   /**
    * Busca cliente por telefone e nome (query direta no Supabase)
@@ -375,7 +376,7 @@ export default function TransferirCartao() {
             {/* Botão Buscar */}
             <Button
               onClick={handleBuscarCliente}
-              disabled={loading || !telefone || !nome}
+              disabled={loading || hookLoading || !telefone || !nome}
               className="w-full"
               size="lg"
             >
@@ -446,11 +447,11 @@ export default function TransferirCartao() {
               <Button
                 size="lg"
                 onClick={() => setShowScanner(true)}
-                disabled={loading}
+                disabled={loading || hookLoading}
                 className="w-full max-w-xs"
               >
                 <Scan className="h-5 w-5 mr-2" />
-                {loading ? 'Verificando...' : 'Escanear Cartão Novo'}
+                {(loading || hookLoading) ? 'Verificando...' : 'Escanear Cartão Novo'}
               </Button>
 
               <p className="text-sm text-muted-foreground text-center">
@@ -573,17 +574,17 @@ export default function TransferirCartao() {
                 type="button"
                 variant="outline"
                 onClick={handleBack}
-                disabled={loading}
+                disabled={loading || hookLoading}
                 className="flex-1"
               >
                 Voltar
               </Button>
               <Button
                 onClick={handleConfirmTransfer}
-                disabled={loading}
+                disabled={loading || hookLoading}
                 className="flex-1"
               >
-                {loading ? 'Transferindo...' : 'Confirmar Transferência'}
+                {(loading || hookLoading) ? 'Transferindo...' : 'Confirmar Transferência'}
               </Button>
             </div>
           </CardContent>
