@@ -5,6 +5,22 @@
  */
 
 /**
+ * Obtém a API de criptografia do navegador
+ */
+function getCrypto() {
+  if (typeof window !== 'undefined' && window.crypto) {
+    return window.crypto
+  }
+  if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+    return globalThis.crypto
+  }
+  if (typeof crypto !== 'undefined') {
+    return crypto
+  }
+  throw new Error('Web Crypto API não disponível')
+}
+
+/**
  * Gera hash SHA-256 de um CPF para comparação
  * Usado para validar CPF sem enviar o valor em texto plano
  */
@@ -23,7 +39,8 @@ export async function hashCPF(cpf) {
   const data = encoder.encode(cleanCPF)
   
   // Gera hash SHA-256
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const cryptoAPI = getCrypto()
+  const hashBuffer = await cryptoAPI.subtle.digest('SHA-256', data)
   
   // Converte para hex string
   const hashArray = Array.from(new Uint8Array(hashBuffer))
@@ -40,7 +57,8 @@ export async function hashString(str) {
   
   const encoder = new TextEncoder()
   const data = encoder.encode(str)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const cryptoAPI = getCrypto()
+  const hashBuffer = await cryptoAPI.subtle.digest('SHA-256', data)
   const hashArray = Array.from(new Uint8Array(hashBuffer))
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
   
@@ -52,7 +70,8 @@ export async function hashString(str) {
  */
 export function generateSalt(length = 16) {
   const array = new Uint8Array(length)
-  crypto.getRandomValues(array)
+  const cryptoAPI = getCrypto()
+  cryptoAPI.getRandomValues(array)
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
 }
 
@@ -108,17 +127,27 @@ export function maskEmail(email) {
  * Valida se o navegador suporta Web Crypto API
  */
 export function isCryptoSupported() {
-  return typeof crypto !== 'undefined' && 
-         typeof crypto.subtle !== 'undefined' &&
-         typeof crypto.getRandomValues !== 'undefined'
+  try {
+    const cryptoAPI = getCrypto()
+    return typeof cryptoAPI !== 'undefined' &&
+           typeof cryptoAPI.subtle !== 'undefined' &&
+           typeof cryptoAPI.getRandomValues !== 'undefined'
+  } catch {
+    return false
+  }
 }
 
 /**
  * Gera um ID único usando crypto.randomUUID (se disponível)
  */
 export function generateSecureId() {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID()
+  try {
+    const cryptoAPI = getCrypto()
+    if (typeof cryptoAPI.randomUUID === 'function') {
+      return cryptoAPI.randomUUID()
+    }
+  } catch {
+    // Fallback se crypto não disponível
   }
   
   // Fallback para navegadores antigos
