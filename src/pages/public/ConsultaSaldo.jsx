@@ -41,7 +41,7 @@ export default function ConsultaSaldo() {
       <Card className="max-w-md mx-auto mt-8">
         <CardHeader>
           <CardTitle className="text-center text-2xl">
-            🎪 Consultar Saldo
+            Consultar Saldo
           </CardTitle>
         </CardHeader>
         <CardContent>

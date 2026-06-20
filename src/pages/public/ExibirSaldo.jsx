@@ -273,7 +273,7 @@ export default function ExibirSaldo() {
       {/* Footer Info */}
       <div className="max-w-md mx-auto mt-6 text-center">
         <p className="text-xs text-gray-500">
-          🎪 Sistema de Gestão de Quermesse
+          Sistema de Gestão de Quermesse
         </p>
         <p className="text-xs text-gray-400 mt-1">
           Página atualizada automaticamente a cada 30 segundos
