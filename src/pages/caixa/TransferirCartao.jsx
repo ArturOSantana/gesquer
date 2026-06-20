@@ -60,7 +60,7 @@ export default function TransferirCartao() {
   const [loading, setLoading] = useState(false);
 
   /**
-   * Busca cliente por telefone e nome (query direta no Supabase)
+   * Busca cliente por telefone e nome (busca flexível ignorando formatação)
    */
   const handleBuscarCliente = async () => {
     try {
@@ -69,6 +69,11 @@ export default function TransferirCartao() {
       setClienteEncontrado(null);
 
       const telefoneSanitizado = telefone.replace(/\D/g, '');
+      
+      console.log('=== BUSCA DE CLIENTE ===');
+      console.log('Telefone digitado:', telefone);
+      console.log('Telefone sanitizado:', telefoneSanitizado);
+      console.log('Nome:', nome.trim());
       
       if (telefoneSanitizado.length < 10) {
         setSubmitError('Telefone deve ter pelo menos 10 dígitos');
@@ -80,25 +85,32 @@ export default function TransferirCartao() {
         return;
       }
 
-      console.log('=== BUSCA DE CLIENTE ===');
-      console.log('Telefone:', telefoneSanitizado);
-      console.log('Nome:', nome.trim());
-
-      // ETAPA 1: Buscar cliente por telefone
-      const { data: cliente, error: clientError } = await supabase
+      // ETAPA 1: Buscar TODOS os clientes (sem filtro de telefone)
+      const { data: todosClientes, error: clientError } = await supabase
         .from('clients')
-        .select('*')
-        .eq('phone', telefoneSanitizado)
-        .maybeSingle();
-
-      console.log('Cliente encontrado:', cliente);
-      console.log('Erro na busca:', clientError);
+        .select('*');
 
       if (clientError) {
-        console.error('Erro ao buscar cliente:', clientError);
-        setSubmitError('Erro ao buscar cliente. Tente novamente.');
+        console.error('Erro ao buscar clientes:', clientError);
+        setSubmitError('Erro ao buscar clientes. Tente novamente.');
         return;
       }
+
+      console.log('Total de clientes no banco:', todosClientes?.length);
+
+      // FILTRAR MANUALMENTE por telefone (removendo formatação)
+      const cliente = todosClientes?.find(c => {
+        const telefoneCliente = c.phone.replace(/\D/g, '');
+        const match = telefoneCliente === telefoneSanitizado;
+        console.log(`Comparando: "${telefoneCliente}" === "${telefoneSanitizado}" = ${match}`);
+        return match;
+      });
+
+      console.log('Cliente encontrado após filtro:', cliente ? {
+        id: cliente.id,
+        name: cliente.name,
+        phone: cliente.phone
+      } : null);
 
       if (!cliente) {
         setSubmitError('Cliente não encontrado com esse telefone');
@@ -108,6 +120,8 @@ export default function TransferirCartao() {
       // Validar nome (case-insensitive, parcial)
       const nomeCliente = cliente.name.toLowerCase();
       const nomeBusca = nome.trim().toLowerCase();
+      
+      console.log(`Validando nome: "${nomeCliente}" includes "${nomeBusca}" = ${nomeCliente.includes(nomeBusca)}`);
       
       if (!nomeCliente.includes(nomeBusca)) {
         setSubmitError('Nome não corresponde ao cliente encontrado');
@@ -122,8 +136,12 @@ export default function TransferirCartao() {
         .eq('status', 'active')
         .maybeSingle();
 
-      console.log('Cartão encontrado:', cartoes);
-      console.log('Erro na busca de cartão:', cardError);
+      console.log('Cartão encontrado:', cartoes ? {
+        id: cartoes.id,
+        uuid: cartoes.uuid,
+        balance: cartoes.balance,
+        status: cartoes.status
+      } : null);
 
       if (cardError) {
         console.error('Erro ao buscar cartão:', cardError);
@@ -149,11 +167,19 @@ export default function TransferirCartao() {
         card_id: cartoes.id
       });
 
-      console.log('Cliente e cartão validados com sucesso');
+      console.log('✅ Cliente e cartão validados com sucesso!');
+      console.log('Dados finais:', {
+        cliente_id: cliente.id,
+        cliente_nome: cliente.name,
+        cartao_uuid: cartoes.uuid,
+        saldo: cartoes.balance
+      });
+      console.log('================================');
+
       setStep('scan-new');
 
     } catch (err) {
-      console.error('Erro ao buscar cliente:', err);
+      console.error('❌ Erro ao buscar cliente:', err);
       setSubmitError('Erro ao buscar cliente. Tente novamente.');
     } finally {
       setLoading(false);
