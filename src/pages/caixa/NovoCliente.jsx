@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,6 +77,43 @@ export default function NovoCliente() {
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState(null);
   const [boundCard, setBoundCard] = useState(null);
+
+  /**
+   * Função de similaridade de strings (Levenshtein simplificado)
+   * Retorna valor entre 0 e 1 (1 = idêntico, 0 = completamente diferente)
+   */
+  const calculateSimilarity = (str1, str2) => {
+    const longer = str1.length > str2.length ? str1 : str2;
+    const shorter = str1.length > str2.length ? str2 : str1;
+    
+    if (longer.length === 0) return 1.0;
+    
+    const editDistance = (s1, s2) => {
+      s1 = s1.toLowerCase();
+      s2 = s2.toLowerCase();
+      
+      const costs = [];
+      for (let i = 0; i <= s1.length; i++) {
+        let lastValue = i;
+        for (let j = 0; j <= s2.length; j++) {
+          if (i === 0) {
+            costs[j] = j;
+          } else if (j > 0) {
+            let newValue = costs[j - 1];
+            if (s1.charAt(i - 1) !== s2.charAt(j - 1)) {
+              newValue = Math.min(Math.min(newValue, lastValue), costs[j]) + 1;
+            }
+            costs[j - 1] = lastValue;
+            lastValue = newValue;
+          }
+        }
+        if (i > 0) costs[s2.length] = lastValue;
+      }
+      return costs[s2.length];
+    };
+    
+    return (longer.length - editDistance(longer, shorter)) / longer.length;
+  };
 
   /**
    * Processa QR Code escaneado
@@ -304,6 +341,7 @@ export default function NovoCliente() {
 
   /**
    * Verifica se telefone já existe no banco de dados
+   * Busca também os cartões do cliente para mostrar informações completas
    */
   const checkPhoneExists = async (phone) => {
     if (!phone) {
@@ -313,7 +351,10 @@ export default function NovoCliente() {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select('*')
+        .select(`
+          *,
+          ca:cards(id, uuid, balance, status)
+        `)
         .eq('phone', phone)
         .maybeSingle();
 
@@ -328,6 +369,40 @@ export default function NovoCliente() {
       return { exists: false, client: null };
     }
   };
+
+  /**
+   * Verificação em tempo real de cliente existente
+   * Usa debounce para não sobrecarregar o banco
+   */
+  useEffect(() => {
+    const checkExistingClient = async () => {
+      // Só verifica se estiver no formulário e tiver telefone completo
+      if (step !== 'form' || !formData.phone || formData.phone.length < 14) {
+        return;
+      }
+
+      const { exists, client } = await checkPhoneExists(formData.phone);
+      
+      if (exists && client) {
+        // Verificar se nome também é similar
+        const nameSimilarity = calculateSimilarity(
+          formData.name.toLowerCase().trim(),
+          client.name.toLowerCase().trim()
+        );
+        
+        // Se similaridade > 70%, provavelmente é o mesmo cliente
+        if (nameSimilarity > 0.7) {
+          setExistingClient(client);
+          // Não mostra diálogo automaticamente, só ao submeter
+          // Mas já prepara os dados
+        }
+      }
+    };
+    
+    // Debounce de 800ms para não fazer muitas requisições
+    const timer = setTimeout(checkExistingClient, 800);
+    return () => clearTimeout(timer);
+  }, [formData.phone, formData.name, step]);
 
   /**
    * Submete formulário e vincula cartão
@@ -406,9 +481,20 @@ export default function NovoCliente() {
 
   /**
    * Confirma vinculação ao cliente existente
+   * Auto-preenche dados do cliente no formulário
    */
   const handleConfirmExistingClient = async () => {
     try {
+      // Auto-preencher dados do cliente existente no formulário
+      setFormData({
+        name: existingClient.name,
+        phone: existingClient.phone,
+        cpf: existingClient.cpf || '',
+        birthDate: existingClient.birth_date || '',
+        isMinor: existingClient.is_minor || false,
+        guardianName: existingClient.guardian_name || ''
+      });
+
       // Vincular cartão ao cliente existente
       const { error } = await supabase
         .from('cards')
@@ -422,7 +508,7 @@ export default function NovoCliente() {
 
       toast({
         title: 'Cartão vinculado!',
-        description: `Cartão vinculado a ${existingClient.name}`,
+        description: `Novo cartão vinculado a ${existingClient.name}`,
       });
 
       // Limpar estados
@@ -463,6 +549,23 @@ export default function NovoCliente() {
       title: 'Operação cancelada',
       description: 'Vinculação cancelada. Você pode alterar o telefone ou cancelar.',
     });
+  };
+
+  /**
+   * Usuário confirma que NÃO é o mesmo cliente
+   * Permite criar novo cliente mesmo com dados similares
+   */
+  const handleNotSameClient = () => {
+    setShowDuplicateDialog(false);
+    setExistingClient(null);
+    
+    toast({
+      title: 'Criar novo cliente',
+      description: 'Você pode alterar os dados e criar um novo cliente',
+    });
+    
+    // Manter formulário preenchido para edição
+    // Usuário pode alterar telefone ou nome se necessário
   };
 
   /**
@@ -887,44 +990,53 @@ export default function NovoCliente() {
         </Card>
       )}
 
-      {/* DIÁLOGO DE TELEFONE DUPLICADO */}
+      {/* DIÁLOGO DE CLIENTE EXISTENTE - MELHORADO */}
       {showDuplicateDialog && existingClient && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
-            <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              Cliente já cadastrado
+            <h3 className="text-lg font-semibold text-blue-600 mb-4 flex items-center gap-2">
+              <UserCheck className="h-5 w-5" />
+              Cliente encontrado
             </h3>
             
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-gray-700 mb-3 font-medium">
-                Um cliente com este telefone já existe:
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-700 mb-3">
+                Encontramos um cliente com dados similares:
               </p>
+              
               <div className="space-y-2 bg-white rounded p-3">
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-gray-500" />
-                  <p className="font-semibold text-gray-900">{existingClient.name}</p>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Nome:</span>
+                  <span className="font-semibold">{existingClient.name}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-500" />
-                  <p className="text-gray-700">{existingClient.phone}</p>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Telefone:</span>
+                  <span className="font-semibold">{existingClient.phone}</span>
                 </div>
                 {existingClient.cpf && (
-                  <div className="flex items-center gap-2">
-                    <Shield className="h-4 w-4 text-gray-500" />
-                    <p className="text-gray-700">CPF: {existingClient.cpf}</p>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">CPF:</span>
+                    <span className="font-semibold">{existingClient.cpf}</span>
                   </div>
                 )}
+                <div className="flex justify-between border-t pt-2 mt-2">
+                  <span className="text-gray-600">Saldo atual:</span>
+                  <span className="font-semibold text-green-600">
+                    R$ {existingClient.ca?.[0]?.balance?.toFixed(2) || '0,00'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Cartões ativos:</span>
+                  <span className="font-semibold">
+                    {existingClient.ca?.filter(c => c.status === 'active').length || 0}
+                  </span>
+                </div>
               </div>
             </div>
             
-            <Alert className="mb-4">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                <strong>Atenção:</strong> Deseja vincular este cartão ao cliente existente?
-                Se não, cancele e altere o telefone no formulário.
-              </AlertDescription>
-            </Alert>
+            <p className="text-sm text-gray-600 mb-6">
+              Este novo cartão pertence a este cliente?
+            </p>
             
             <div className="flex gap-3">
               <Button
@@ -933,15 +1045,15 @@ export default function NovoCliente() {
                 disabled={loading}
               >
                 <CheckCircle2 className="h-4 w-4 mr-2" />
-                Sim, vincular
+                Sim, é este cliente
               </Button>
               <Button
-                onClick={handleCancelDuplicate}
+                onClick={handleNotSameClient}
                 variant="outline"
                 className="flex-1"
                 disabled={loading}
               >
-                Cancelar
+                Não, é outro cliente
               </Button>
             </div>
           </div>
