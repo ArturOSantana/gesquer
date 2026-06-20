@@ -216,24 +216,86 @@ export function useProducts(barracaId = null) {
   }, [fetchProducts]);
 
   /**
-   * Deleta um produto
+   * Verifica dependências de um produto antes de deletar
+   * Retorna avisos sobre estoque e vendas
+   */
+  const checkProductDependencies = useCallback(async (productId) => {
+    try {
+      const warnings = [];
+
+      // Busca informações do produto
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('stock_quantity, name, price')
+        .eq('id', productId)
+        .single();
+
+      if (productError) throw productError;
+
+      // Verifica estoque atual
+      if (product.stock_quantity > 0) {
+        warnings.push(`Estoque atual: ${product.stock_quantity} unidade(s)`);
+      }
+
+      // Verifica vendas associadas
+      const { data: saleItems, error: salesError } = await supabase
+        .from('sale_items')
+        .select('id, quantity, created_at')
+        .eq('product_id', productId)
+        .order('created_at', { ascending: false });
+
+      if (salesError) throw salesError;
+
+      if (saleItems && saleItems.length > 0) {
+        warnings.push(`${saleItems.length} venda(s) no histórico`);
+        
+        // Verifica vendas recentes (últimos 7 dias)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const recentSales = saleItems.filter(
+          item => new Date(item.created_at) > sevenDaysAgo
+        );
+        
+        if (recentSales.length > 0) {
+          warnings.push(`${recentSales.length} venda(s) nos últimos 7 dias`);
+        }
+      }
+
+      return {
+        canDelete: saleItems.length === 0,
+        warnings,
+        dependencies: {
+          stock: product.stock_quantity,
+          sales: saleItems.length
+        }
+      };
+    } catch (err) {
+      console.error('Erro ao verificar dependências do produto:', err);
+      return {
+        canDelete: false,
+        warnings: ['Erro ao verificar dependências'],
+        error: err.message
+      };
+    }
+  }, []);
+
+  /**
+   * Deleta um produto (apenas SuperAdmin)
+   * Verifica dependências antes de deletar
    */
   const deleteProduct = useCallback(async (productId) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Verifica se há vendas associadas
-      const { data: saleItems } = await supabase
-        .from('sale_items')
-        .select('id')
-        .eq('product_id', productId)
-        .limit(1);
+      // Verifica dependências
+      const { canDelete, dependencies } = await checkProductDependencies(productId);
 
-      if (saleItems && saleItems.length > 0) {
+      if (!canDelete) {
         throw new Error('Não é possível deletar produto com histórico de vendas. Desative-o ao invés de deletar.');
       }
 
+      // Deleta o produto
       const { error: deleteError } = await supabase
         .from('products')
         .delete()
@@ -252,7 +314,7 @@ export function useProducts(barracaId = null) {
     } finally {
       setLoading(false);
     }
-  }, [fetchProducts]);
+  }, [checkProductDependencies, fetchProducts]);
 
   /**
    * Atualiza o estoque de um produto
@@ -501,6 +563,7 @@ export function useProducts(barracaId = null) {
     updateProduct,
     deleteProduct,
     toggleProductStatus,
+    checkProductDependencies,
 
     // Funções de estoque
     updateStock,

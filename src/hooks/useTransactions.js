@@ -54,6 +54,10 @@ export function useTransactions() {
           barraca:barracas(
             id,
             name
+          ),
+          user:users(
+            id,
+            name
           )
         `)
         .order('created_at', { ascending: false });
@@ -337,6 +341,10 @@ export function useTransactions() {
           barraca:barracas(
             id,
             name
+          ),
+          user:users(
+            id,
+            name
           )
         `)
         .eq('id', transactionId)
@@ -365,6 +373,11 @@ export function useTransactions() {
       start_date: yesterday.toISOString(),
       limit
     });
+  }, [fetchTransactions]);
+
+  // Carrega transações ao montar o componente
+  useEffect(() => {
+    fetchTransactions();
   }, [fetchTransactions]);
 
   return {

@@ -256,7 +256,7 @@ export function useCardRecovery() {
       const { data: existingCard, error: searchError } = await supabase
         .from('cards')
         .select('*')
-        .eq('qr_code', newCardQR)
+        .eq('uuid', newCardQR)
         .single()
 
       if (searchError && searchError.code !== 'PGRST116') {
@@ -279,7 +279,7 @@ export function useCardRecovery() {
         const { data: createdCard, error: createError } = await supabase
           .from('cards')
           .insert({
-            qr_code: newCardQR,
+            uuid: newCardQR,
             status: 'inactive',
             balance: 0
           })
@@ -324,7 +324,7 @@ export function useCardRecovery() {
           card_id: newCard.id,
           type: 'transfer',
           amount: oldCard.balance,
-          description: `Transferência do cartão ${oldCard.qr_code} (recuperação)`,
+          description: `Transferência do cartão ${oldCard.uuid} (recuperação)`,
           operator_id: userData?.user?.id,
           validation_method: validationMethod
         })

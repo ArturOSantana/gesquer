@@ -3,8 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../hooks/useAuth';
 import { useBarracas } from '../../hooks/useBarracas';
+import { useUsers } from '../../hooks/useUsers';
 import { useToast } from '../../hooks/use-toast';
 import { Spinner } from '../../components/ui/Spinner';
+import { DeleteConfirmDialog } from '../../components/common/DeleteConfirmDialog';
 
 // Cliente admin para operações privilegiadas (confirmação automática de email)
 const supabaseAdmin = createClient(
@@ -19,7 +21,7 @@ import { Badge } from '../../components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../../components/ui/alert-dialog';
-import { UserPlus, Edit, Shield, Loader2, Eye, EyeOff, Info } from 'lucide-react';
+import { UserPlus, Edit, Shield, Loader2, Eye, EyeOff, Info, Trash2 } from 'lucide-react';
 import { ROLES, getRoleLabel, getRoleBadgeColor } from '../../lib/permissions';
 
 export default function Users() {
@@ -28,6 +30,8 @@ export default function Users() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [deleteDialog, setDeleteDialog] = useState({ open: false, user: null });
+  const [isDeleting, setIsDeleting] = useState(false);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -47,6 +51,12 @@ export default function Users() {
     error: errorBarracas,
     invalidateCache
   } = useBarracas();
+
+  // Hook de usuários para exclusão
+  const {
+    deleteUser,
+    checkUserDependencies
+  } = useUsers();
 
   useEffect(() => {
     console.log('🚀 useEffect executado - carregando usuários');
@@ -302,6 +312,40 @@ export default function Users() {
     }
   }
 
+  // Handler para abrir dialog de exclusão
+  async function handleOpenDeleteDialog(user) {
+    const { warnings } = await checkUserDependencies(user.id);
+    setDeleteDialog({ open: true, user, warnings });
+  }
+
+  // Handler para confirmar exclusão
+  async function handleConfirmDelete() {
+    if (!deleteDialog.user) return;
+
+    try {
+      setIsDeleting(true);
+      const { success, error } = await deleteUser(deleteDialog.user.id);
+
+      if (error) throw new Error(error);
+
+      toast({
+        title: 'Sucesso',
+        description: 'Usuário excluído com sucesso',
+      });
+
+      setDeleteDialog({ open: false, user: null });
+      loadUsers();
+    } catch (error) {
+      console.error('Erro ao excluir usuário:', error);
+      toast({
+        title: 'Erro',
+        description: error.message || 'Erro ao excluir usuário',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   if (loading && users.length === 0) {
     return (
@@ -595,6 +639,19 @@ export default function Users() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
+
+                  {/* Botão Excluir (apenas SuperAdmin) */}
+                  {profile?.role === 'superadmin' && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenDeleteDialog(user)}
+                      disabled={user.id === profile?.id}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -610,6 +667,18 @@ export default function Users() {
           </Card>
         )}
       </div>
+
+      {/* Dialog de confirmação de exclusão */}
+      <DeleteConfirmDialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, user: null })}
+        onConfirm={handleConfirmDelete}
+        title={`Excluir usuário ${deleteDialog.user?.name}?`}
+        description="Esta ação não pode ser desfeita. O usuário será removido permanentemente do sistema."
+        itemName={deleteDialog.user?.name}
+        warnings={deleteDialog.warnings || []}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

@@ -281,44 +281,122 @@ export function useCards() {
   }, []);
 
   /**
-   * Deleta um cartão (soft delete - marca como inativo)
+   * Verifica dependências de um cartão antes de deletar
+   * Retorna avisos sobre saldo e transações
    */
-  const deleteCard = useCallback(async (cardId) => {
+  const checkCardDependencies = useCallback(async (cardId) => {
+    try {
+      const warnings = [];
+
+      // Busca informações do cartão
+      const { data: card, error: cardError } = await supabase
+        .from('cards')
+        .select(`
+          balance,
+          uuid,
+          client:clients(name)
+        `)
+        .eq('id', cardId)
+        .single();
+
+      if (cardError) throw cardError;
+
+      // Verifica saldo
+      if (card.balance > 0) {
+        warnings.push(`Saldo atual: R$ ${parseFloat(card.balance).toFixed(2)}`);
+        warnings.push('Saldo será perdido permanentemente');
+      }
+
+      // Verifica transações
+      const { data: transactions, error: transactionsError } = await supabase
+        .from('transactions')
+        .select('id, type, created_at')
+        .eq('card_id', cardId)
+        .order('created_at', { ascending: false });
+
+      if (transactionsError) throw transactionsError;
+
+      if (transactions && transactions.length > 0) {
+        warnings.push(`${transactions.length} transação(ões) no histórico`);
+      }
+
+      // Verifica vendas
+      const { data: sales, error: salesError } = await supabase
+        .from('sales')
+        .select('id')
+        .eq('card_id', cardId);
+
+      if (salesError) throw salesError;
+
+      if (sales && sales.length > 0) {
+        warnings.push(`${sales.length} venda(s) associada(s)`);
+      }
+
+      return {
+        canDelete: true, // SuperAdmin pode deletar mesmo com saldo
+        warnings,
+        dependencies: {
+          balance: parseFloat(card.balance),
+          transactions: transactions.length,
+          sales: sales.length
+        }
+      };
+    } catch (err) {
+      console.error('Erro ao verificar dependências do cartão:', err);
+      return {
+        canDelete: false,
+        warnings: ['Erro ao verificar dependências'],
+        error: err.message
+      };
+    }
+  }, []);
+
+  /**
+   * Deleta um cartão (apenas SuperAdmin)
+   * Hard delete - remove permanentemente
+   */
+  const deleteCard = useCallback(async (cardId, hardDelete = false) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Verifica se o cartão tem saldo
-      const { data: card } = await supabase
-        .from('cards')
-        .select('balance')
-        .eq('id', cardId)
-        .single();
+      // Verifica dependências
+      const { dependencies } = await checkCardDependencies(cardId);
 
-      if (card && card.balance > 0) {
-        throw new Error('Não é possível deletar cartão com saldo. Transfira o saldo primeiro.');
+      if (dependencies.balance > 0) {
+        console.warn(`Deletando cartão com saldo: R$ ${dependencies.balance.toFixed(2)}`);
       }
 
-      // Marca como inativo ao invés de deletar
-      const { error: updateError } = await supabase
-        .from('cards')
-        .update({ status: 'inactive' })
-        .eq('id', cardId);
+      if (hardDelete) {
+        // Hard delete - remove permanentemente (apenas SuperAdmin)
+        const { error: deleteError } = await supabase
+          .from('cards')
+          .delete()
+          .eq('id', cardId);
 
-      if (updateError) throw updateError;
+        if (deleteError) throw deleteError;
+      } else {
+        // Soft delete - marca como inativo
+        const { error: updateError } = await supabase
+          .from('cards')
+          .update({ status: 'inactive' })
+          .eq('id', cardId);
+
+        if (updateError) throw updateError;
+      }
 
       // Remove da lista local
       setCards(prev => prev.filter(card => card.id !== cardId));
 
-      return { error: null };
+      return { success: true, error: null };
     } catch (err) {
       console.error('Erro ao deletar cartão:', err);
       setError(err.message);
-      return { error: err.message };
+      return { success: false, error: err.message };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [checkCardDependencies]);
 
   /**
    * Recarrega saldo do cartão
@@ -435,6 +513,7 @@ export function useCards() {
     createCard,
     updateCard,
     deleteCard,
+    checkCardDependencies,
     rechargeCard,
     getCardTransactions,
   };

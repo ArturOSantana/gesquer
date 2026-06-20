@@ -189,12 +189,18 @@ export default function QrDisplay({
       )}
 
       {/* Aviso de Segurança */}
-      <Card className="border-amber-200 bg-amber-50">
+      <Card className="border-blue-200 bg-blue-50">
         <CardContent className="pt-6">
-          <p className="text-sm text-amber-800">
-            <strong>Importante:</strong> Não compartilhe este QR Code com terceiros.
-            Ele dá acesso ao saldo e transações do cartão.
-          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-blue-800">
+              <strong>Como usar:</strong> O cliente deve escanear este QR Code com a câmera do celular.
+              Ele será redirecionado automaticamente para a página de consulta de saldo.
+            </p>
+            <p className="text-xs text-blue-700">
+              <strong>Importante:</strong> Não compartilhe este QR Code com terceiros.
+              Ele dá acesso ao saldo e transações do cartão.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

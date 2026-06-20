@@ -204,35 +204,99 @@ export function useBarracas() {
   }, [invalidateCache]);
 
   /**
-   * Deleta uma barraca
+   * Verifica dependências de uma barraca antes de deletar
+   * Retorna avisos sobre produtos, vendas e usuários vinculados
+   */
+  const checkBarracaDependencies = useCallback(async (barracaId) => {
+    try {
+      const warnings = [];
+
+      // Verifica produtos associados
+      const { data: products, error: productsError } = await supabase
+        .from('products')
+        .select('id, name, status')
+        .eq('barraca_id', barracaId);
+
+      if (productsError) throw productsError;
+
+      if (products && products.length > 0) {
+        const activeProducts = products.filter(p => p.status === 'active').length;
+        warnings.push(`${products.length} produto(s) cadastrado(s) (${activeProducts} ativo(s))`);
+      }
+
+      // Verifica vendas associadas
+      const { data: sales, error: salesError } = await supabase
+        .from('sales')
+        .select('id')
+        .eq('barraca_id', barracaId);
+
+      if (salesError) throw salesError;
+
+      if (sales && sales.length > 0) {
+        warnings.push(`${sales.length} venda(s) no histórico`);
+      }
+
+      // Verifica usuários vinculados
+      const { data: users, error: usersError } = await supabase
+        .from('users')
+        .select('id, name, role')
+        .eq('barraca_id', barracaId);
+
+      if (usersError) throw usersError;
+
+      if (users && users.length > 0) {
+        warnings.push(`${users.length} usuário(s) vinculado(s) perderão acesso`);
+      }
+
+      return {
+        canDelete: products.length === 0 && sales.length === 0,
+        warnings,
+        dependencies: {
+          products: products.length,
+          sales: sales.length,
+          users: users.length
+        }
+      };
+    } catch (err) {
+      console.error('Erro ao verificar dependências da barraca:', err);
+      return {
+        canDelete: false,
+        warnings: ['Erro ao verificar dependências'],
+        error: err.message
+      };
+    }
+  }, []);
+
+  /**
+   * Deleta uma barraca (apenas SuperAdmin)
+   * Verifica dependências antes de deletar
    */
   const deleteBarraca = useCallback(async (barracaId) => {
     try {
       setLoading(true);
       setError(null);
 
-      // Verifica se há produtos associados
-      const { data: products } = await supabase
-        .from('products')
-        .select('id')
-        .eq('barraca_id', barracaId)
-        .limit(1);
+      // Verifica dependências
+      const { canDelete, warnings, dependencies } = await checkBarracaDependencies(barracaId);
 
-      if (products && products.length > 0) {
-        throw new Error('Não é possível deletar barraca com produtos cadastrados. Desative-a ao invés de deletar.');
+      if (!canDelete) {
+        const errorMsg = dependencies.products > 0
+          ? 'Não é possível deletar barraca com produtos cadastrados. Desative-a ao invés de deletar.'
+          : 'Não é possível deletar barraca com histórico de vendas. Desative-a ao invés de deletar.';
+        throw new Error(errorMsg);
       }
 
-      // Verifica se há vendas associadas
-      const { data: sales } = await supabase
-        .from('sales')
-        .select('id')
-        .eq('barraca_id', barracaId)
-        .limit(1);
+      // Remove usuários vinculados (desvincula)
+      if (dependencies.users > 0) {
+        const { error: updateUsersError } = await supabase
+          .from('users')
+          .update({ barraca_id: null })
+          .eq('barraca_id', barracaId);
 
-      if (sales && sales.length > 0) {
-        throw new Error('Não é possível deletar barraca com histórico de vendas. Desative-a ao invés de deletar.');
+        if (updateUsersError) throw updateUsersError;
       }
 
+      // Deleta a barraca
       const { error: deleteError } = await supabase
         .from('barracas')
         .delete()
@@ -251,7 +315,7 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, [invalidateCache]);
+  }, [checkBarracaDependencies, invalidateCache]);
 
   /**
    * Ativa ou desativa uma barraca
@@ -420,6 +484,7 @@ export function useBarracas() {
     getBarracaStats,
     getBarracaProducts,
     getBarracaSales,
+    checkBarracaDependencies,
 
     // Cache
     invalidateCache,

@@ -21,6 +21,8 @@ import GerarQRLote from './pages/admin/GerarQRLote'
 import NovoCliente from './pages/caixa/NovoCliente'
 import Recarga from './pages/caixa/Recarga'
 import TransferirCartao from './pages/caixa/TransferirCartao'
+import ConsultaSaldo from './pages/public/ConsultaSaldo'
+import ExibirSaldo from './pages/public/ExibirSaldo'
 import NotFound from './pages/NotFound'
 import { Toaster } from './components/ui/toaster'
 import SupabaseConfigWarning from './components/SupabaseConfigWarning'
@@ -32,8 +34,10 @@ function App() {
       <Router>
         <AuthProvider>
           <Routes>
-            {/* Rota pública - Login */}
+            {/* Rotas públicas */}
             <Route path="/login" element={<Login />} />
+            <Route path="/consulta" element={<ConsultaSaldo />} />
+            <Route path="/consulta/:uuid" element={<ExibirSaldo />} />
 
             {/* Rotas protegidas */}
             <Route path="/" element={<Layout />}>

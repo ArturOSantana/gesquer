@@ -8,6 +8,8 @@ import { Label } from '../components/ui/label';
 import { Download, FileText, TrendingUp, Users, Package, DollarSign } from 'lucide-react';
 import { useTransactions } from '../hooks/useTransactions';
 import { useBarracas } from '../hooks/useBarracas';
+import { exportTransactionsCSV, generateFilename } from '../lib/csvExport';
+import { useToast } from '../hooks/use-toast';
 
 export default function Reports() {
   const [dateFrom, setDateFrom] = useState('');
@@ -17,29 +19,67 @@ export default function Reports() {
 
   const { transactions, loading: loadingTransactions } = useTransactions();
   const { barracas } = useBarracas();
+  const { toast } = useToast();
 
   const exportToCSV = () => {
-    const filtered = filterTransactions();
-    const headers = ['Data', 'Tipo', 'Valor', 'Barraca', 'Cliente', 'ID Cartão'];
-    const rows = filtered.map(t => [
-      new Date(t.created_at).toLocaleString('pt-BR'),
-      t.type,
-      t.amount,
-      t.barracas?.name || 'N/A',
-      t.cards?.client?.name || 'N/A',
-      t.cards?.id ? String(t.cards.id).substring(0, 8) : 'N/A',
-    ]);
+    try {
+      const filtered = filterTransactions();
+      
+      // Debug: Log da estrutura dos dados
+      console.log('=== DEBUG EXPORTAÇÃO CSV ===');
+      console.log('Total de transações:', filtered.length);
+      if (filtered.length > 0) {
+        console.log('Exemplo de transação:', filtered[0]);
+        console.log('Estrutura barraca:', filtered[0]?.barraca);
+        console.log('Estrutura card:', filtered[0]?.card);
+        console.log('Estrutura user:', filtered[0]?.user);
+      }
+      console.log('===========================');
+      
+      if (filtered.length === 0) {
+        toast({
+          title: 'Nenhum dado para exportar',
+          description: 'Não há transações no período selecionado.',
+          variant: 'destructive',
+        });
+        return;
+      }
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `relatorio_${reportType}_${Date.now()}.csv`;
-    link.click();
+      // Gera nome do arquivo com filtros aplicados
+      let filenameParts = ['relatorio'];
+      
+      if (selectedBarraca !== 'all') {
+        const barraca = barracas?.find(b => b.id === selectedBarraca);
+        if (barraca) {
+          filenameParts.push(barraca.name.toLowerCase().replace(/\s+/g, '_'));
+        }
+      }
+      
+      if (dateFrom) {
+        filenameParts.push(`de_${dateFrom.replace(/-/g, '')}`);
+      }
+      
+      if (dateTo) {
+        filenameParts.push(`ate_${dateTo.replace(/-/g, '')}`);
+      }
+      
+      const filename = generateFilename(filenameParts.join('_'));
+      
+      // Exporta usando o utilitário
+      exportTransactionsCSV(filtered, filename);
+      
+      toast({
+        title: 'Exportação concluída',
+        description: `${filtered.length} transações exportadas com sucesso.`,
+      });
+    } catch (error) {
+      console.error('Erro ao exportar CSV:', error);
+      toast({
+        title: 'Erro na exportação',
+        description: 'Não foi possível exportar o arquivo CSV.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const exportToJSON = () => {
@@ -66,7 +106,10 @@ export default function Reports() {
     }
 
     if (selectedBarraca !== 'all') {
-      filtered = filtered.filter(t => t.barraca_id === selectedBarraca);
+      filtered = filtered.filter(t => {
+        // Suporta tanto barraca_id direto quanto através do relacionamento
+        return t.barraca_id === selectedBarraca || t.barraca?.id === selectedBarraca;
+      });
     }
 
     return filtered;
@@ -248,12 +291,19 @@ export default function Reports() {
                         <td className="p-2">
                           {new Date(transaction.created_at).toLocaleString('pt-BR')}
                         </td>
-                        <td className="p-2 capitalize">{transaction.type}</td>
-                        <td className="p-2">{transaction.barracas?.name || 'N/A'}</td>
+                        <td className="p-2 capitalize">
+                          {transaction.type === 'recharge' ? 'Recarga' :
+                           transaction.type === 'purchase' ? 'Compra' :
+                           transaction.type === 'refund' ? 'Estorno' :
+                           transaction.type === 'transfer_in' ? 'Transferência (Entrada)' :
+                           transaction.type === 'transfer_out' ? 'Transferência (Saída)' :
+                           transaction.type}
+                        </td>
+                        <td className="p-2">{transaction.barraca?.name || 'N/A'}</td>
                         <td className="p-2">
-                          {transaction.cards?.client?.name || 'N/A'}
+                          {transaction.card?.client?.name || 'N/A'}
                           <span className="text-xs text-muted-foreground ml-2">
-                            {transaction.cards?.id ? `(${String(transaction.cards.id).substring(0, 8)}...)` : ''}
+                            {transaction.card?.uuid ? `(${transaction.card.uuid.substring(0, 8)}...)` : ''}
                           </span>
                         </td>
                         <td className="p-2 text-right font-semibold">

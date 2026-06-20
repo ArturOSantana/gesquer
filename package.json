@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:network": "vite --host",
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "get-ip": "node scripts/get-network-ip.cjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.17",
