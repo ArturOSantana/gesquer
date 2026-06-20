@@ -9,6 +9,7 @@ import { useSaleIdempotency } from '@/hooks/useSaleIdempotency';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { formatCurrency } from '@/lib/utils';
+import { extractUuidFromQrCode } from '@/lib/qrCodeUtils';
 import { AlertCircle, ArrowLeft, Check, X } from 'lucide-react';
 
 /**
@@ -362,8 +363,18 @@ export default function Sale() {
     try {
       setLoading(true);
       
-      // Extrai UUID do QR Code
-      const uuid = qrData.replace('QUERMESSEON:', '').trim();
+      console.log('=== DEBUG SCAN (VENDA) ===');
+      console.log('Conteúdo escaneado:', qrData);
+      
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const uuid = extractUuidFromQrCode(qrData);
+      
+      console.log('UUID extraído:', uuid);
+      console.log('==========================');
+      
+      if (!uuid) {
+        throw new Error('QR Code inválido ou formato não reconhecido');
+      }
       
       // Busca cartão
       const { data: card, error: cardError } = await getCardByUuid(uuid);
@@ -384,6 +395,7 @@ export default function Sale() {
         description: `Cliente: ${card.client.name}`,
       });
     } catch (err) {
+      console.error('Erro ao processar QR Code:', err);
       toast({
         title: 'Erro ao escanear',
         description: err.message,

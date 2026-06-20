@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../../lib/utils';
+import { extractUuidFromQrCode } from '../../lib/qrCodeUtils';
 import QrScanner from '../../components/qr/QrScanner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,19 +39,35 @@ export default function Recarga() {
 
   // Quando escaneia QR Code
   async function handleQRScanned(qrData) {
-    setScannedQR(qrData);
     setLoading(true);
     setShowScanner(false);
 
     try {
-      // Buscar cartão pelo QR Code
+      console.log('=== DEBUG SCAN (RECARGA) ===');
+      console.log('Conteúdo escaneado:', qrData);
+      
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const uuid = extractUuidFromQrCode(qrData);
+      
+      console.log('UUID extraído:', uuid);
+      console.log('============================');
+      
+      if (!uuid) {
+        toast.error('QR Code inválido ou formato não reconhecido');
+        setStep('scan');
+        return;
+      }
+      
+      setScannedQR(uuid);
+      
+      // Buscar cartão pelo UUID
       const { data: card, error } = await supabase
         .from('cards')
         .select(`
           *,
           client:clients(*)
         `)
-        .eq('uuid', qrData)
+        .eq('uuid', uuid)
         .single();
 
       if (error || !card) {

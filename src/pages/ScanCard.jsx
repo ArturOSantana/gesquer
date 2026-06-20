@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import QrScanner from '@/components/qr/QrScanner';
 import CardDetails from '@/components/cards/CardDetails';
 import { useCards } from '@/hooks/useCards';
+import { extractUuidFromQrCode } from '@/lib/qrCodeUtils';
 import { Camera, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 /**
@@ -22,12 +23,26 @@ export default function ScanCard() {
   const [success, setSuccess] = useState(false);
 
   // Processa QR Code escaneado
-  const handleScan = async (uuid) => {
+  const handleScan = async (qrData) => {
     setLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
+      console.log('=== DEBUG SCAN (SCAN CARD) ===');
+      console.log('Conteúdo escaneado:', qrData);
+      
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const uuid = extractUuidFromQrCode(qrData);
+      
+      console.log('UUID extraído:', uuid);
+      console.log('==============================');
+      
+      if (!uuid) {
+        setError('QR Code inválido ou formato não reconhecido');
+        return;
+      }
+
       const { data, error: fetchError } = await getCardByUuid(uuid);
 
       if (fetchError) {

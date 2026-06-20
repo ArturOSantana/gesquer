@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import QrScanner from '@/components/qr/QrScanner';
 import { useCardBinding } from '@/hooks/useCardBinding';
 import { formatCPF, validateCPF, validateBirthDate, isMinor } from '@/lib/validators';
+import { extractUuidFromQrCode } from '@/lib/qrCodeUtils';
 import {
   User,
   Phone,
@@ -77,10 +78,18 @@ export default function NovoCliente() {
     setShowScanner(false);
 
     try {
-      // Extrai UUID do QR Code (formato: QUERMESSEON:uuid)
-      let cardUuid = qrData;
-      if (qrData.startsWith('QUERMESSEON:')) {
-        cardUuid = qrData.replace('QUERMESSEON:', '');
+      console.log('=== DEBUG SCAN (NOVO CLIENTE) ===');
+      console.log('Conteúdo escaneado:', qrData);
+      
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const cardUuid = extractUuidFromQrCode(qrData);
+      
+      console.log('UUID extraído:', cardUuid);
+      console.log('=================================');
+      
+      if (!cardUuid) {
+        setSubmitError('QR Code inválido ou formato não reconhecido');
+        return;
       }
 
       // Verifica disponibilidade do cartão

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import QrScanner from '@/components/qr/QrScanner';
 import { CardRecovery } from '@/components/cards/CardRecovery';
 import { useCardBinding } from '@/hooks/useCardBinding';
+import { extractUuidFromQrCode } from '@/lib/qrCodeUtils';
 import {
   CreditCard,
   QrCode,
@@ -61,10 +62,18 @@ export default function TransferirCartao() {
     setShowScanner(false);
 
     try {
-      // Extrai UUID do QR Code
-      let cardUuid = qrData;
-      if (qrData.startsWith('QUERMESSEON:')) {
-        cardUuid = qrData.replace('QUERMESSEON:', '');
+      console.log('=== DEBUG SCAN (TRANSFERÊNCIA - CARTÃO ANTIGO) ===');
+      console.log('Conteúdo escaneado:', qrData);
+      
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const cardUuid = extractUuidFromQrCode(qrData);
+      
+      console.log('UUID extraído:', cardUuid);
+      console.log('==================================================');
+      
+      if (!cardUuid) {
+        setSubmitError('QR Code inválido ou formato não reconhecido');
+        return;
       }
 
       // Busca informações do cartão
@@ -103,10 +112,18 @@ export default function TransferirCartao() {
     setShowScanner(false);
 
     try {
-      // Extrai UUID do QR Code
-      let cardUuid = qrData;
-      if (qrData.startsWith('QUERMESSEON:')) {
-        cardUuid = qrData.replace('QUERMESSEON:', '');
+      console.log('=== DEBUG SCAN (TRANSFERÊNCIA - CARTÃO NOVO) ===');
+      console.log('Conteúdo escaneado:', qrData);
+      
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const cardUuid = extractUuidFromQrCode(qrData);
+      
+      console.log('UUID extraído:', cardUuid);
+      console.log('================================================');
+      
+      if (!cardUuid) {
+        setSubmitError('QR Code inválido ou formato não reconhecido');
+        return;
       }
 
       // Verifica se não é o mesmo cartão

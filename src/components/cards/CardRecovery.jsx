@@ -10,6 +10,7 @@ import QrScanner from '../qr/QrScanner'
 import { useCardRecovery } from '../../hooks/useCardRecovery'
 import { formatCPF, sanitizeCPF } from '../../lib/validators'
 import { maskPhone } from '../../lib/crypto'
+import { extractUuidFromQrCode } from '../../lib/qrCodeUtils'
 import { 
   Search, 
   CheckCircle2, 
@@ -117,8 +118,22 @@ export function CardRecovery({ onSuccess, onCancel }) {
   /**
    * Escaneia novo cartão
    */
-  const handleScanComplete = (qrCode) => {
-    setNewCardQR(qrCode)
+  const handleScanComplete = (qrData) => {
+    console.log('=== DEBUG SCAN (CARD RECOVERY) ===')
+    console.log('Conteúdo escaneado:', qrData)
+    
+    // Extrai UUID do QR Code (suporta múltiplos formatos)
+    const uuid = extractUuidFromQrCode(qrData)
+    
+    console.log('UUID extraído:', uuid)
+    console.log('==================================')
+    
+    if (!uuid) {
+      // Mostra erro mas não bloqueia - deixa o hook lidar com isso
+      console.error('QR Code inválido')
+    }
+    
+    setNewCardQR(uuid || qrData)
     setShowScanner(false)
     setStep('confirm')
   }

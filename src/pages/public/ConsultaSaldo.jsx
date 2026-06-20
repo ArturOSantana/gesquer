@@ -4,6 +4,7 @@ import QrScanner from '../../components/qr/QrScanner'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '../../components/ui/alert'
+import { extractUuidFromQrCode } from '../../lib/qrCodeUtils'
 
 export default function ConsultaSaldo() {
   const navigate = useNavigate()
@@ -13,23 +14,16 @@ export default function ConsultaSaldo() {
     try {
       setError(null)
       
-      // Extrair UUID do QR Code
-      // Formato esperado: URL completa "https://dominio.com/consulta/uuid" ou apenas "uuid"
-      let cardUuid = scannedData.trim()
+      console.log('=== DEBUG SCAN (CONSULTA SALDO) ===')
+      console.log('Conteúdo escaneado:', scannedData)
       
-      // Se for URL completa, extrair UUID
-      if (cardUuid.includes('/consulta/')) {
-        const parts = cardUuid.split('/consulta/')
-        cardUuid = parts[parts.length - 1]
-      }
-      // Formato antigo (retrocompatibilidade)
-      else if (cardUuid.startsWith('QUERMESSE:')) {
-        cardUuid = cardUuid.replace('QUERMESSE:', '')
-      }
+      // Extrai UUID do QR Code (suporta múltiplos formatos)
+      const cardUuid = extractUuidFromQrCode(scannedData)
       
-      // Validar formato UUID
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(cardUuid)) {
+      console.log('UUID extraído:', cardUuid)
+      console.log('===================================')
+      
+      if (!cardUuid) {
         setError('QR Code inválido. Por favor, escaneie o QR Code do seu cartão.')
         return
       }
