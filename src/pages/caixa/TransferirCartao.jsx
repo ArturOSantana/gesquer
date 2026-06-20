@@ -2,16 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import QrScanner from '@/components/qr/QrScanner';
-import { CardRecovery } from '@/components/cards/CardRecovery';
 import { useCardBinding } from '@/hooks/useCardBinding';
 import { extractUuidFromQrCode } from '@/lib/qrCodeUtils';
+import { supabase } from '@/lib/supabase';
 import {
   CreditCard,
-  QrCode,
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
@@ -20,15 +20,15 @@ import {
   User,
   Phone,
   DollarSign,
-  Shield
+  Search
 } from 'lucide-react';
 
 /**
- * Página do Caixa: Transferir Cartão (Substituição)
+ * Página do Caixa: Transferir Cartão (Substituição Simplificada)
  * 
- * Fluxo:
- * 1. Escanear cartão antigo (origem)
- * 2. Verificar se cartão está ativo e tem cliente
+ * Fluxo Simplificado:
+ * 1. Buscar cliente por TELEFONE + NOME (sem QR Code)
+ * 2. Validar identidade do cliente
  * 3. Escanear cartão novo (destino - do lote)
  * 4. Verificar se cartão novo está disponível
  * 5. Transferir saldo automaticamente
@@ -39,68 +39,109 @@ export default function TransferirCartao() {
   const navigate = useNavigate();
   const { 
     loading, 
-    getCardByUuid,
     checkCardAvailability,
     transferCardBalance 
   } = useCardBinding();
 
   // Estados do fluxo
-  const [step, setStep] = useState('scan-old'); // 'scan-old', 'scan-new', 'confirm', 'success'
-  const [oldCard, setOldCard] = useState(null);
+  const [step, setStep] = useState('search'); // 'search', 'scan-new', 'confirm', 'success'
+  
+  // Dados de busca
+  const [telefone, setTelefone] = useState('');
+  const [nome, setNome] = useState('');
+  
+  // Dados do cliente e cartões
+  const [clienteEncontrado, setClienteEncontrado] = useState(null);
   const [newCard, setNewCard] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
-  const [scannerMode, setScannerMode] = useState('old'); // 'old' ou 'new'
 
   const [submitError, setSubmitError] = useState(null);
   const [transferResult, setTransferResult] = useState(null);
 
   /**
-   * Processa QR Code do cartão antigo
+   * Busca cliente por telefone e nome (query direta no Supabase)
    */
-  const handleScanOldCard = async (qrData) => {
-    setSubmitError(null);
-    setShowScanner(false);
-
+  const handleBuscarCliente = async () => {
     try {
-      console.log('=== DEBUG SCAN (TRANSFERÊNCIA - CARTÃO ANTIGO) ===');
-      console.log('Conteúdo escaneado:', qrData);
+      setLoading(true);
+      setSubmitError('');
+      setClienteEncontrado(null);
+
+      // Sanitiza telefone (remove caracteres não numéricos)
+      const telefoneSanitizado = telefone.replace(/\D/g, '');
       
-      // Extrai UUID do QR Code (suporta múltiplos formatos)
-      const cardUuid = extractUuidFromQrCode(qrData);
-      
-      console.log('UUID extraído:', cardUuid);
-      console.log('==================================================');
-      
-      if (!cardUuid) {
-        setSubmitError('QR Code inválido ou formato não reconhecido');
+      if (telefoneSanitizado.length < 10) {
+        setSubmitError('Telefone deve ter pelo menos 10 dígitos');
         return;
       }
 
-      // Busca informações do cartão
-      const { card, error } = await getCardByUuid(cardUuid);
-
-      if (error) {
-        setSubmitError(error);
+      if (!nome.trim()) {
+        setSubmitError('Nome é obrigatório');
         return;
       }
 
-      // Valida cartão antigo
-      if (card.status !== 'active') {
-        setSubmitError('Cartão antigo não está ativo');
+      console.log('=== BUSCA DE CLIENTE ===');
+      console.log('Telefone:', telefoneSanitizado);
+      console.log('Nome:', nome.trim());
+
+      // Busca direta no Supabase (SEM função SQL)
+      const { data: clientes, error: searchError } = await supabase
+        .from('clients')
+        .select(`
+          id,
+          name,
+          phone,
+          cpf,
+          is_minor,
+          guardian_name,
+          cards!inner(
+            id,
+            uuid,
+            balance,
+            status
+          )
+        `)
+        .eq('phone', telefoneSanitizado)
+        .ilike('name', `%${nome.trim()}%`)
+        .eq('cards.status', 'active')
+        .single();
+
+      console.log('Resultado da busca:', clientes);
+      console.log('Erro:', searchError);
+
+      if (searchError || !clientes) {
+        setSubmitError('Cliente não encontrado com esse telefone e nome. Verifique os dados e tente novamente.');
         return;
       }
 
-      if (!card.client_id || !card.client) {
-        setSubmitError('Cartão antigo não está vinculado a um cliente');
+      // Verifica se tem cartão ativo
+      if (!clientes.cards || clientes.cards.length === 0) {
+        setSubmitError('Cliente não possui cartão ativo');
         return;
       }
 
-      // Cartão válido, avança para próximo passo
-      setOldCard(card);
+      // Formata dados do cliente
+      const clienteData = {
+        id: clientes.id,
+        name: clientes.name,
+        phone: clientes.phone,
+        has_cpf: !!clientes.cpf,
+        is_minor: clientes.is_minor,
+        guardian_name: clientes.guardian_name,
+        current_balance: clientes.cards[0].balance,
+        card_qr_code: clientes.cards[0].uuid,
+        card_id: clientes.cards[0].id
+      };
+
+      console.log('Cliente encontrado:', clienteData);
+      setClienteEncontrado(clienteData);
       setStep('scan-new');
+
     } catch (err) {
-      console.error('Erro ao processar cartão antigo:', err);
-      setSubmitError('Erro ao processar cartão: ' + err.message);
+      console.error('Erro ao buscar cliente:', err);
+      setSubmitError('Erro ao buscar cliente. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,14 +153,14 @@ export default function TransferirCartao() {
     setShowScanner(false);
 
     try {
-      console.log('=== DEBUG SCAN (TRANSFERÊNCIA - CARTÃO NOVO) ===');
+      console.log('=== DEBUG SCAN (CARTÃO NOVO) ===');
       console.log('Conteúdo escaneado:', qrData);
       
       // Extrai UUID do QR Code (suporta múltiplos formatos)
       const cardUuid = extractUuidFromQrCode(qrData);
       
       console.log('UUID extraído:', cardUuid);
-      console.log('================================================');
+      console.log('================================');
       
       if (!cardUuid) {
         setSubmitError('QR Code inválido ou formato não reconhecido');
@@ -127,7 +168,7 @@ export default function TransferirCartao() {
       }
 
       // Verifica se não é o mesmo cartão
-      if (cardUuid === oldCard.uuid) {
+      if (cardUuid === clienteEncontrado.card_qr_code) {
         setSubmitError('Não é possível transferir para o mesmo cartão');
         return;
       }
@@ -172,7 +213,7 @@ export default function TransferirCartao() {
 
     try {
       const { success, oldCard: updatedOldCard, newCard: updatedNewCard, transferredAmount, error } = 
-        await transferCardBalance(oldCard.uuid, newCard.uuid);
+        await transferCardBalance(clienteEncontrado.card_qr_code, newCard.uuid);
 
       if (error) {
         setSubmitError(error);
@@ -201,8 +242,10 @@ export default function TransferirCartao() {
    * Reinicia o fluxo
    */
   const handleReset = () => {
-    setStep('scan-old');
-    setOldCard(null);
+    setStep('search');
+    setTelefone('');
+    setNome('');
+    setClienteEncontrado(null);
     setNewCard(null);
     setSubmitError(null);
     setTransferResult(null);
@@ -213,8 +256,8 @@ export default function TransferirCartao() {
    */
   const handleBack = () => {
     if (step === 'scan-new') {
-      setStep('scan-old');
-      setOldCard(null);
+      setStep('search');
+      setClienteEncontrado(null);
       setNewCard(null);
       setSubmitError(null);
     } else if (step === 'confirm') {
@@ -227,24 +270,17 @@ export default function TransferirCartao() {
   };
 
   /**
-   * Abre scanner
+   * Formata telefone para exibição
    */
-  const openScanner = (mode) => {
-    setScannerMode(mode);
-    setShowScanner(true);
-    setSubmitError(null);
-  };
-
-  /**
-   * Handler de sucesso da recuperação
-   */
-  const handleRecoverySuccess = (result) => {
-    setTransferResult({
-      oldCard: result.oldCard,
-      newCard: result.newCard,
-      transferredAmount: result.oldCard.balance
-    });
-    setStep('success');
+  const formatPhone = (phone) => {
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length === 11) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7)}`;
+    }
+    if (cleaned.length === 10) {
+      return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 6)}-${cleaned.slice(6)}`;
+    }
+    return phone;
   };
 
   return (
@@ -265,104 +301,17 @@ export default function TransferirCartao() {
           <h1 className="text-3xl font-bold">Transferir Cartão</h1>
         </div>
         <p className="text-muted-foreground">
-          Substitua um cartão desgastado ou recupere um cartão perdido
+          Substitua um cartão desgastado ou perdido
         </p>
       </div>
 
-      {/* Tabs para escolher método */}
-      {step === 'scan-old' && (
-        <Tabs defaultValue="normal" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="normal">
-              <CreditCard className="h-4 w-4 mr-2" />
-              Transferência Normal
-            </TabsTrigger>
-            <TabsTrigger value="recovery">
-              <Shield className="h-4 w-4 mr-2" />
-              Recuperação de Cartão
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Transferência Normal */}
-          <TabsContent value="normal" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Escanear Cartão Antigo</CardTitle>
-                <CardDescription>
-                  Escaneie o QR Code do cartão que será substituído
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {submitError && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{submitError}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="flex flex-col items-center gap-4 py-8">
-                  <div className="relative">
-                    <QrCode className="h-24 w-24 text-muted-foreground" />
-                    <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
-                      <span className="text-red-600 font-bold text-xs">1</span>
-                    </div>
-                  </div>
-                  
-                  <Button
-                    size="lg"
-                    onClick={() => openScanner('old')}
-                    disabled={loading}
-                    className="w-full max-w-xs"
-                  >
-                    <Scan className="h-5 w-5 mr-2" />
-                    {loading ? 'Verificando...' : 'Escanear Cartão Antigo'}
-                  </Button>
-
-                  <p className="text-sm text-muted-foreground text-center">
-                    Escaneie o cartão que o cliente deseja substituir
-                  </p>
-                </div>
-
-                {/* Scanner de QR Code */}
-                {showScanner && scannerMode === 'old' && (
-                  <div className="mt-4">
-                    <QrScanner
-                      onScan={handleScanOldCard}
-                      onError={(err) => {
-                        setSubmitError('Erro ao escanear: ' + err);
-                        setShowScanner(false);
-                      }}
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowScanner(false)}
-                      className="w-full mt-2"
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Recuperação de Cartão */}
-          <TabsContent value="recovery" className="mt-4">
-            <CardRecovery
-              onSuccess={handleRecoverySuccess}
-              onCancel={() => navigate(-1)}
-            />
-          </TabsContent>
-        </Tabs>
-      )}
-
-      {/* PASSO 1: Escanear Cartão Antigo (mantido para fluxo normal) */}
-      {step === 'scan-old-legacy' && (
+      {/* PASSO 1: Buscar Cliente por Telefone + Nome */}
+      {step === 'search' && (
         <Card>
           <CardHeader>
-            <CardTitle>Escanear Cartão Antigo</CardTitle>
+            <CardTitle>Buscar Cliente</CardTitle>
             <CardDescription>
-              Escaneie o QR Code do cartão que será substituído
+              Informe o telefone e nome do cliente para localizar o cartão
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -373,54 +322,72 @@ export default function TransferirCartao() {
               </Alert>
             )}
 
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="relative">
-                <QrCode className="h-24 w-24 text-muted-foreground" />
-                <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
-                  <span className="text-red-600 font-bold text-xs">1</span>
-                </div>
-              </div>
-              
-              <Button
-                size="lg"
-                onClick={() => openScanner('old')}
-                disabled={loading}
-                className="w-full max-w-xs"
-              >
-                <Scan className="h-5 w-5 mr-2" />
-                {loading ? 'Verificando...' : 'Escanear Cartão Antigo'}
-              </Button>
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Importante:</strong> Use esta opção quando o cartão estiver 
+                ilegível, perdido ou danificado. O cliente precisa fornecer telefone 
+                e nome para validação de identidade.
+              </AlertDescription>
+            </Alert>
 
-              <p className="text-sm text-muted-foreground text-center">
-                Escaneie o cartão que o cliente deseja substituir
-              </p>
+            <div className="space-y-4">
+              {/* Campo Telefone */}
+              <div className="space-y-2">
+                <Label htmlFor="telefone">
+                  <Phone className="h-4 w-4 inline mr-2" />
+                  Telefone do Cliente
+                </Label>
+                <Input
+                  id="telefone"
+                  type="tel"
+                  placeholder="(11) 98765-4321"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  disabled={loading}
+                  maxLength={15}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Digite apenas números ou com formatação
+                </p>
+              </div>
+
+              {/* Campo Nome */}
+              <div className="space-y-2">
+                <Label htmlFor="nome">
+                  <User className="h-4 w-4 inline mr-2" />
+                  Nome do Cliente
+                </Label>
+                <Input
+                  id="nome"
+                  type="text"
+                  placeholder="Nome completo ou parcial"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  disabled={loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Pode ser nome parcial (ex: "João" ou "Silva")
+                </p>
+              </div>
             </div>
 
-            {/* Scanner de QR Code */}
-            {showScanner && scannerMode === 'old' && (
-              <div className="mt-4">
-                <QrScanner
-                  onScan={handleScanOldCard}
-                  onError={(err) => {
-                    setSubmitError('Erro ao escanear: ' + err);
-                    setShowScanner(false);
-                  }}
-                />
-                <Button
-                  variant="outline"
-                  onClick={() => setShowScanner(false)}
-                  className="w-full mt-2"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            )}
+            {/* Botão Buscar */}
+            <Button
+              onClick={handleBuscarCliente}
+              disabled={loading || !telefone || !nome}
+              className="w-full"
+              size="lg"
+            >
+              <Search className="h-5 w-5 mr-2" />
+              {loading ? 'Buscando...' : 'Buscar Cliente'}
+            </Button>
           </CardContent>
         </Card>
       )}
 
       {/* PASSO 2: Escanear Cartão Novo */}
-      {step === 'scan-new' && oldCard && (
+      {step === 'scan-new' && clienteEncontrado && (
         <Card>
           <CardHeader>
             <CardTitle>Escanear Cartão Novo</CardTitle>
@@ -429,29 +396,35 @@ export default function TransferirCartao() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Info do cartão antigo */}
+            {/* Info do cliente encontrado */}
             <div className="p-4 bg-muted rounded-lg">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Cartão Antigo</h3>
-                <Badge variant="outline">Ativo</Badge>
+                <h3 className="font-semibold">Cliente Encontrado</h3>
+                <Badge variant="outline">Cartão Ativo</Badge>
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span>{oldCard.client.name}</span>
+                  <span>{clienteEncontrado.name}</span>
                 </div>
-                {oldCard.client.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{oldCard.client.phone}</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <span>{formatPhone(clienteEncontrado.phone)}</span>
+                </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-muted-foreground" />
                   <span className="font-semibold">
-                    Saldo: R$ {parseFloat(oldCard.balance || 0).toFixed(2)}
+                    Saldo Atual: R$ {parseFloat(clienteEncontrado.current_balance || 0).toFixed(2)}
                   </span>
                 </div>
+                {clienteEncontrado.is_minor && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs">
+                      Responsável: {clienteEncontrado.guardian_name}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -464,7 +437,7 @@ export default function TransferirCartao() {
 
             <div className="flex flex-col items-center gap-4 py-8">
               <div className="relative">
-                <QrCode className="h-24 w-24 text-muted-foreground" />
+                <CreditCard className="h-24 w-24 text-muted-foreground" />
                 <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
                   <span className="text-green-600 font-bold text-xs">2</span>
                 </div>
@@ -472,7 +445,7 @@ export default function TransferirCartao() {
               
               <Button
                 size="lg"
-                onClick={() => openScanner('new')}
+                onClick={() => setShowScanner(true)}
                 disabled={loading}
                 className="w-full max-w-xs"
               >
@@ -486,7 +459,7 @@ export default function TransferirCartao() {
             </div>
 
             {/* Scanner de QR Code */}
-            {showScanner && scannerMode === 'new' && (
+            {showScanner && (
               <div className="mt-4">
                 <QrScanner
                   onScan={handleScanNewCard}
@@ -509,7 +482,7 @@ export default function TransferirCartao() {
       )}
 
       {/* PASSO 3: Confirmar Transferência */}
-      {step === 'confirm' && oldCard && newCard && (
+      {step === 'confirm' && clienteEncontrado && newCard && (
         <Card>
           <CardHeader>
             <CardTitle>Confirmar Transferência</CardTitle>
@@ -529,16 +502,16 @@ export default function TransferirCartao() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-red-600" />
-                  <span className="text-red-900">{oldCard.client.name}</span>
+                  <span className="text-red-900">{clienteEncontrado.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-red-600" />
-                  <span className="font-mono text-xs text-red-900">{oldCard.uuid}</span>
+                  <span className="font-mono text-xs text-red-900">{clienteEncontrado.card_qr_code}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-red-600" />
                   <span className="font-semibold text-red-900">
-                    R$ {parseFloat(oldCard.balance || 0).toFixed(2)}
+                    R$ {parseFloat(clienteEncontrado.current_balance || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -562,7 +535,7 @@ export default function TransferirCartao() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-green-600" />
-                  <span className="text-green-900">{oldCard.client.name}</span>
+                  <span className="text-green-900">{clienteEncontrado.name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-green-600" />
@@ -571,7 +544,7 @@ export default function TransferirCartao() {
                 <div className="flex items-center gap-2">
                   <DollarSign className="h-4 w-4 text-green-600" />
                   <span className="font-semibold text-green-900">
-                    R$ {parseFloat(oldCard.balance || 0).toFixed(2)}
+                    R$ {parseFloat(clienteEncontrado.current_balance || 0).toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -662,7 +635,7 @@ export default function TransferirCartao() {
                 <strong>Próximos passos:</strong>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-sm">
                   <li>Entregue o novo cartão ao cliente</li>
-                  <li>Recolha o cartão antigo</li>
+                  <li>Recolha o cartão antigo (se disponível)</li>
                   <li>O cartão antigo foi desativado automaticamente</li>
                 </ol>
               </AlertDescription>
@@ -691,3 +664,4 @@ export default function TransferirCartao() {
   );
 }
 
+// Made with Bob
