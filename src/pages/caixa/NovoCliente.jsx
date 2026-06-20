@@ -10,6 +10,8 @@ import QrScanner from '@/components/qr/QrScanner';
 import { useCardBinding } from '@/hooks/useCardBinding';
 import { formatCPF, validateCPF, validateBirthDate, isMinor } from '@/lib/validators';
 import { extractUuidFromQrCode } from '@/lib/qrCodeUtils';
+import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 import {
   User,
   Phone,
@@ -45,16 +47,22 @@ import {
  */
 export default function NovoCliente() {
   const navigate = useNavigate();
-  const { 
-    loading, 
-    checkCardAvailability, 
-    bindCardToClient 
+  const { toast } = useToast();
+  const {
+    loading,
+    checkCardAvailability,
+    bindCardToClient
   } = useCardBinding();
 
   // Estados do fluxo
   const [step, setStep] = useState('scan'); // 'scan', 'form', 'success'
   const [scannedCard, setScannedCard] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
+
+  // Estados para controle de telefone duplicado
+  const [existingClient, setExistingClient] = useState(null);
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [pendingCardUuid, setPendingCardUuid] = useState(null);
 
   // Dados do formulário
   const [formData, setFormData] = useState({
@@ -295,6 +303,33 @@ export default function NovoCliente() {
   };
 
   /**
+   * Verifica se telefone já existe no banco de dados
+   */
+  const checkPhoneExists = async (phone) => {
+    if (!phone) {
+      return { exists: false, client: null };
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('phone', phone)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Erro ao verificar telefone:', error);
+        return { exists: false, client: null };
+      }
+
+      return { exists: !!data, client: data };
+    } catch (err) {
+      console.error('Erro ao verificar telefone:', err);
+      return { exists: false, client: null };
+    }
+  };
+
+  /**
    * Submete formulário e vincula cartão
    */
   const handleSubmit = async (e) => {
@@ -306,6 +341,32 @@ export default function NovoCliente() {
       return;
     }
 
+    try {
+      // NOVO: Verificar se telefone já existe
+      if (formData.phone) {
+        const { exists, client } = await checkPhoneExists(formData.phone);
+        
+        if (exists) {
+          // Mostrar diálogo de confirmação
+          setExistingClient(client);
+          setShowDuplicateDialog(true);
+          setPendingCardUuid(scannedCard.uuid);
+          return; // Aguarda decisão do usuário
+        }
+      }
+
+      // Se não existe telefone duplicado, continua normalmente
+      await createNewClient();
+    } catch (err) {
+      console.error('Erro ao vincular cartão:', err);
+      setSubmitError(err.message || 'Erro ao vincular cartão');
+    }
+  };
+
+  /**
+   * Cria novo cliente e vincula cartão
+   */
+  const createNewClient = async () => {
     try {
       // Prepara dados do cliente
       const clientData = {
@@ -341,6 +402,67 @@ export default function NovoCliente() {
       console.error('Erro ao vincular cartão:', err);
       setSubmitError(err.message || 'Erro ao vincular cartão');
     }
+  };
+
+  /**
+   * Confirma vinculação ao cliente existente
+   */
+  const handleConfirmExistingClient = async () => {
+    try {
+      // Vincular cartão ao cliente existente
+      const { error } = await supabase
+        .from('cards')
+        .update({
+          client_id: existingClient.id,
+          status: 'active'
+        })
+        .eq('uuid', pendingCardUuid);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Cartão vinculado!',
+        description: `Cartão vinculado a ${existingClient.name}`,
+      });
+
+      // Limpar estados
+      setShowDuplicateDialog(false);
+      setExistingClient(null);
+      setPendingCardUuid(null);
+
+      // Resetar formulário
+      setFormData({
+        name: '',
+        phone: '',
+        cpf: '',
+        birthDate: '',
+        isMinor: false,
+        guardianName: ''
+      });
+      setScannedCard(null);
+      setStep('scan');
+
+    } catch (error) {
+      console.error('Erro ao vincular cartão:', error);
+      toast({
+        title: 'Erro',
+        description: 'Erro ao vincular cartão ao cliente existente',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  /**
+   * Cancela vinculação ao cliente existente
+   */
+  const handleCancelDuplicate = () => {
+    setShowDuplicateDialog(false);
+    setExistingClient(null);
+    setPendingCardUuid(null);
+    toast({
+      title: 'Operação cancelada',
+      description: 'Vinculação cancelada. Você pode alterar o telefone ou cancelar.',
+    });
   };
 
   /**
@@ -763,6 +885,67 @@ export default function NovoCliente() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* DIÁLOGO DE TELEFONE DUPLICADO */}
+      {showDuplicateDialog && existingClient && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <h3 className="text-lg font-semibold text-red-600 mb-4 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              Cliente já cadastrado
+            </h3>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+              <p className="text-sm text-gray-700 mb-3 font-medium">
+                Um cliente com este telefone já existe:
+              </p>
+              <div className="space-y-2 bg-white rounded p-3">
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-gray-500" />
+                  <p className="font-semibold text-gray-900">{existingClient.name}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-gray-500" />
+                  <p className="text-gray-700">{existingClient.phone}</p>
+                </div>
+                {existingClient.cpf && (
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4 text-gray-500" />
+                    <p className="text-gray-700">CPF: {existingClient.cpf}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <Alert className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                <strong>Atenção:</strong> Deseja vincular este cartão ao cliente existente?
+                Se não, cancele e altere o telefone no formulário.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={handleConfirmExistingClient}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+                disabled={loading}
+              >
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Sim, vincular
+              </Button>
+              <Button
+                onClick={handleCancelDuplicate}
+                variant="outline"
+                className="flex-1"
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

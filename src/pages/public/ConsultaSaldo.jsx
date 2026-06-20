@@ -46,15 +46,6 @@ export default function ConsultaSaldo() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="text-center space-y-2">
-              <p className="text-gray-700 font-medium">
-                Escaneie o QR Code do seu cartão com a câmera do celular
-              </p>
-              <p className="text-sm text-gray-500">
-                Ou use o scanner abaixo se já estiver nesta página
-              </p>
-            </div>
-            
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -63,15 +54,6 @@ export default function ConsultaSaldo() {
             )}
             
             <QrScanner onScan={handleScan} />
-            
-            <div className="p-4 bg-blue-50 rounded-lg space-y-2">
-              <p className="text-sm text-gray-700 text-center">
-                <strong>💡 Dica:</strong> Mantenha o QR Code bem iluminado e centralizado na câmera
-              </p>
-              <p className="text-xs text-gray-600 text-center">
-                O QR Code do cartão contém um link direto para consulta de saldo
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
