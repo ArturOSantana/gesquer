@@ -4,6 +4,25 @@ import { toast } from '../../hooks/use-toast';
 import QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Obtém a URL base para gerar QR Codes
+ */
+function getBaseUrl() {
+  const envUrl = import.meta.env.VITE_APP_URL;
+  
+  // Se for 'auto', usa window.location.origin
+  if (envUrl === 'auto') {
+    return window.location.origin;
+  }
+  
+  // Se não tiver configurado, usa window.location.origin
+  if (!envUrl) {
+    return window.location.origin;
+  }
+  
+  return envUrl;
+}
+
 export default function GerarQRLote() {
   const [quantidade, setQuantidade] = useState(10);
   const [prefixo, setPrefixo] = useState('QUERMESSE');
@@ -22,11 +41,20 @@ export default function GerarQRLote() {
 
     setLoading(true);
     const novosQRs = [];
+    const baseUrl = getBaseUrl();
+
+    console.log('=== GERANDO QR CODES ===');
+    console.log('Base URL:', baseUrl);
+    console.log('Quantidade:', quantidade);
 
     try {
       for (let i = 0; i < quantidade; i++) {
-        const id = uuidv4();
-        const qrData = `${prefixo}-${id}`;
+        const uuid = uuidv4();
+        
+        // NOVO FORMATO: URL completa para consulta
+        const qrData = `${baseUrl}/consulta/${uuid}`;
+        
+        console.log(`QR Code ${i + 1}:`, qrData);
         
         // Gerar imagem do QR Code
         const qrImage = await QRCode.toDataURL(qrData, {
@@ -36,11 +64,14 @@ export default function GerarQRLote() {
         });
 
         novosQRs.push({
-          id: qrData,
+          id: uuid,
+          url: qrData,
           image: qrImage,
           numero: i + 1
         });
       }
+
+      console.log('=== QR CODES GERADOS COM SUCESSO ===');
 
       setQrCodes(novosQRs);
       toast({
@@ -104,7 +135,8 @@ export default function GerarQRLote() {
           <div class="qr-card">
             <h3>Cartão #${qr.numero}</h3>
             <img src="${qr.image}" alt="QR Code ${qr.numero}" />
-            <p>${qr.id}</p>
+            <p style="font-size: 8pt; word-break: break-all;">UUID: ${qr.id}</p>
+            <p style="font-size: 7pt; color: #999; margin-top: 2mm;">URL: ${qr.url}</p>
           </div>
         `).join('')}
       </body>
@@ -202,8 +234,11 @@ export default function GerarQRLote() {
                 <div key={qr.id} className="border-2 border-gray-200 rounded-lg p-3 text-center">
                   <p className="text-sm font-semibold mb-2">#{qr.numero}</p>
                   <img src={qr.image} alt={`QR ${qr.numero}`} className="w-full" />
-                  <p className="text-xs text-gray-600 mt-2 break-all">
-                    {qr.id.substring(0, 20)}...
+                  <p className="text-xs text-gray-600 mt-2 break-all font-mono">
+                    {qr.id.substring(0, 8)}...
+                  </p>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    URL completa
                   </p>
                 </div>
               ))}

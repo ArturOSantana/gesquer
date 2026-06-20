@@ -6,6 +6,25 @@ import { useBatch } from '../../hooks/useBatch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 
+/**
+ * Obtém a URL base para gerar QR Codes
+ */
+function getBaseUrl() {
+  const envUrl = import.meta.env.VITE_APP_URL;
+  
+  // Se for 'auto', usa window.location.origin
+  if (envUrl === 'auto') {
+    return window.location.origin;
+  }
+  
+  // Se não tiver configurado, usa window.location.origin
+  if (!envUrl) {
+    return window.location.origin;
+  }
+  
+  return envUrl;
+}
+
 function formatDateTime(value) {
   if (!value) return '-';
   return new Date(value).toLocaleString('pt-BR');
@@ -63,24 +82,44 @@ export default function BatchDetails() {
       return;
     }
 
+    const baseUrl = getBaseUrl();
+    console.log('=== GERANDO QR CODES DO LOTE ===');
+    console.log('Base URL:', baseUrl);
+    console.log('Total de cartões:', cards.length);
+
     const generated = await Promise.all(
       cards.map(async (card) => {
-        const qrCodeUrl = await QRCode.toDataURL(card.qr_value, {
+        // NOVO FORMATO: URL completa para consulta
+        // Se card.qr_value já for uma URL, usa ela; senão, constrói a URL
+        let qrData;
+        if (card.qr_value && card.qr_value.startsWith('http')) {
+          qrData = card.qr_value;
+        } else {
+          // Usa o UUID do cartão para gerar a URL
+          qrData = `${baseUrl}/consulta/${card.uuid}`;
+        }
+
+        console.log(`Cartão ${card.uuid.substring(0, 8)}... → ${qrData}`);
+
+        const qrCodeUrl = await QRCode.toDataURL(qrData, {
           width: 220,
           margin: 1,
           color: {
             dark: '#000000',
             light: '#FFFFFF',
           },
+          errorCorrectionLevel: 'H'
         });
 
         return {
           ...card,
           qrCodeUrl,
+          qrData, // Adiciona a URL gerada para referência
         };
       })
     );
 
+    console.log('=== QR CODES GERADOS COM SUCESSO ===');
     setQrCodes(generated);
   };
 

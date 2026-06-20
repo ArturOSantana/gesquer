@@ -92,7 +92,9 @@ const getCameraSupportState = () => {
 
 /**
  * Componente para escanear QR Code
- * Espera formato: "QUERMESSEON:{uuid}"
+ * Aceita dois formatos:
+ * - NOVO: "http://dominio.com/consulta/{uuid}" (URL completa)
+ * - ANTIGO: "QUERMESSEON:{uuid}" (compatibilidade com QR Codes antigos)
  *
  * @param {Object} props
  * @param {Function} props.onScan - Callback quando QR Code é escaneado com sucesso (recebe uuid)
@@ -231,11 +233,26 @@ export default function QrScanner({
   const handleScanSuccess = (decodedText) => {
     console.log('QR Code escaneado:', decodedText);
 
-    // Valida formato QUERMESSEON:{uuid}
-    const match = decodedText.match(/^QUERMESSEON:([a-f0-9-]{36})$/i);
-    
-    if (match) {
-      const uuid = match[1];
+    let uuid = null;
+
+    // FORMATO NOVO: URL completa (http://dominio.com/consulta/{uuid})
+    const urlMatch = decodedText.match(/\/consulta\/([a-f0-9-]{36})$/i);
+    if (urlMatch) {
+      uuid = urlMatch[1];
+      console.log('✅ Formato NOVO detectado (URL):', uuid);
+    }
+
+    // FORMATO ANTIGO: QUERMESSEON:{uuid} (compatibilidade)
+    if (!uuid) {
+      const oldMatch = decodedText.match(/^QUERMESSEON:([a-f0-9-]{36})$/i);
+      if (oldMatch) {
+        uuid = oldMatch[1];
+        console.log('✅ Formato ANTIGO detectado (QUERMESSEON):', uuid);
+      }
+    }
+
+    // Se encontrou UUID válido
+    if (uuid) {
       setLastScan({ uuid, timestamp: new Date() });
       setError(null);
 
@@ -249,6 +266,7 @@ export default function QrScanner({
       }
     } else {
       const errorMsg = 'QR Code inválido. Use apenas QR Codes do QuermesseOn!';
+      console.error('❌ QR Code inválido:', decodedText);
       setError(errorMsg);
       if (onError) {
         onError(errorMsg);
