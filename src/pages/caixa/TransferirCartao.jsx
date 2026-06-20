@@ -68,7 +68,6 @@ export default function TransferirCartao() {
       setSubmitError('');
       setClienteEncontrado(null);
 
-      // Sanitiza telefone (remove caracteres não numéricos)
       const telefoneSanitizado = telefone.replace(/\D/g, '');
       
       if (telefoneSanitizado.length < 10) {
@@ -85,57 +84,72 @@ export default function TransferirCartao() {
       console.log('Telefone:', telefoneSanitizado);
       console.log('Nome:', nome.trim());
 
-      // Busca direta no Supabase (SEM função SQL)
-      const { data: clientes, error: searchError } = await supabase
+      // ETAPA 1: Buscar cliente por telefone
+      const { data: cliente, error: clientError } = await supabase
         .from('clients')
-        .select(`
-          id,
-          name,
-          phone,
-          cpf,
-          is_minor,
-          guardian_name,
-          cards!inner(
-            id,
-            uuid,
-            balance,
-            status
-          )
-        `)
+        .select('*')
         .eq('phone', telefoneSanitizado)
-        .ilike('name', `%${nome.trim()}%`)
-        .eq('cards.status', 'active')
-        .single();
+        .maybeSingle();
 
-      console.log('Resultado da busca:', clientes);
-      console.log('Erro:', searchError);
+      console.log('Cliente encontrado:', cliente);
+      console.log('Erro na busca:', clientError);
 
-      if (searchError || !clientes) {
-        setSubmitError('Cliente não encontrado com esse telefone e nome. Verifique os dados e tente novamente.');
+      if (clientError) {
+        console.error('Erro ao buscar cliente:', clientError);
+        setSubmitError('Erro ao buscar cliente. Tente novamente.');
         return;
       }
 
-      // Verifica se tem cartão ativo
-      if (!clientes.cards || clientes.cards.length === 0) {
+      if (!cliente) {
+        setSubmitError('Cliente não encontrado com esse telefone');
+        return;
+      }
+
+      // Validar nome (case-insensitive, parcial)
+      const nomeCliente = cliente.name.toLowerCase();
+      const nomeBusca = nome.trim().toLowerCase();
+      
+      if (!nomeCliente.includes(nomeBusca)) {
+        setSubmitError('Nome não corresponde ao cliente encontrado');
+        return;
+      }
+
+      // ETAPA 2: Buscar cartão ativo do cliente
+      const { data: cartoes, error: cardError } = await supabase
+        .from('cards')
+        .select('*')
+        .eq('client_id', cliente.id)
+        .eq('status', 'active')
+        .maybeSingle();
+
+      console.log('Cartão encontrado:', cartoes);
+      console.log('Erro na busca de cartão:', cardError);
+
+      if (cardError) {
+        console.error('Erro ao buscar cartão:', cardError);
+        setSubmitError('Erro ao buscar cartão. Tente novamente.');
+        return;
+      }
+
+      if (!cartoes) {
         setSubmitError('Cliente não possui cartão ativo');
         return;
       }
 
-      // Formata dados do cliente
-      const clienteData = {
-        id: clientes.id,
-        name: clientes.name,
-        phone: clientes.phone,
-        has_cpf: !!clientes.cpf,
-        is_minor: clientes.is_minor,
-        guardian_name: clientes.guardian_name,
-        current_balance: clientes.cards[0].balance,
-        card_qr_code: clientes.cards[0].uuid,
-        card_id: clientes.cards[0].id
-      };
+      // Formatar dados do cliente
+      setClienteEncontrado({
+        id: cliente.id,
+        name: cliente.name,
+        phone: cliente.phone,
+        has_cpf: !!cliente.cpf,
+        is_minor: cliente.is_minor,
+        guardian_name: cliente.guardian_name,
+        current_balance: cartoes.balance,
+        card_qr_code: cartoes.uuid,
+        card_id: cartoes.id
+      });
 
-      console.log('Cliente encontrado:', clienteData);
-      setClienteEncontrado(clienteData);
+      console.log('Cliente e cartão validados com sucesso');
       setStep('scan-new');
 
     } catch (err) {
