@@ -128,20 +128,16 @@ export default function TransferirCartao() {
         return;
       }
 
-      // ETAPA 2: Buscar cartão ativo do cliente
+      // ETAPA 2: Buscar cartão ativo do cliente (PEGAR O MAIS RECENTE)
       const { data: cartoes, error: cardError } = await supabase
         .from('cards')
         .select('*')
         .eq('client_id', cliente.id)
         .eq('status', 'active')
-        .maybeSingle();
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-      console.log('Cartão encontrado:', cartoes ? {
-        id: cartoes.id,
-        uuid: cartoes.uuid,
-        balance: cartoes.balance,
-        status: cartoes.status
-      } : null);
+      console.log('Cartões encontrados:', cartoes);
 
       if (cardError) {
         console.error('Erro ao buscar cartão:', cardError);
@@ -149,10 +145,13 @@ export default function TransferirCartao() {
         return;
       }
 
-      if (!cartoes) {
+      if (!cartoes || cartoes.length === 0) {
         setSubmitError('Cliente não possui cartão ativo');
         return;
       }
+
+      // Pegar o primeiro (mais recente)
+      const cartao = cartoes[0];
 
       // Formatar dados do cliente
       setClienteEncontrado({
@@ -162,17 +161,17 @@ export default function TransferirCartao() {
         has_cpf: !!cliente.cpf,
         is_minor: cliente.is_minor,
         guardian_name: cliente.guardian_name,
-        current_balance: cartoes.balance,
-        card_qr_code: cartoes.uuid,
-        card_id: cartoes.id
+        current_balance: cartao.balance,
+        card_qr_code: cartao.uuid,
+        card_id: cartao.id
       });
 
       console.log('✅ Cliente e cartão validados com sucesso!');
       console.log('Dados finais:', {
         cliente_id: cliente.id,
         cliente_nome: cliente.name,
-        cartao_uuid: cartoes.uuid,
-        saldo: cartoes.balance
+        cartao_uuid: cartao.uuid,
+        saldo: cartao.balance
       });
       console.log('================================');
 
