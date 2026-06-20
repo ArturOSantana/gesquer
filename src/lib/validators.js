@@ -205,6 +205,148 @@ export function validateCPF(cpf) {
 }
 
 /**
+ * Formata CPF para exibição (XXX.XXX.XXX-XX)
+ */
+export function formatCPF(cpf) {
+  if (!cpf) return ''
+  
+  const cleanCPF = cpf.replace(/[^\d]/g, '')
+  
+  if (cleanCPF.length !== 11) return cpf
+  
+  return cleanCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+}
+
+/**
+ * Remove formatação do CPF, retorna apenas números
+ */
+export function sanitizeCPF(cpf) {
+  if (!cpf) return ''
+  return cpf.replace(/[^\d]/g, '')
+}
+
+/**
+ * Valida data de nascimento
+ */
+export function validateBirthDate(birthDate) {
+  if (!birthDate) {
+    return { valid: false, error: 'Data de nascimento inválida' }
+  }
+  
+  const date = new Date(birthDate)
+  
+  if (isNaN(date.getTime())) {
+    return { valid: false, error: 'Formato de data inválido' }
+  }
+  
+  const today = new Date()
+  const minDate = new Date(1900, 0, 1)
+  
+  if (date < minDate || date > today) {
+    return { valid: false, error: 'Data de nascimento inválida' }
+  }
+  
+  return { valid: true, date }
+}
+
+/**
+ * Verifica se é menor de idade (< 18 anos)
+ */
+export function isMinor(birthDate) {
+  if (!birthDate) return false
+  
+  const birth = new Date(birthDate)
+  const today = new Date()
+  
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  
+  return age < 18
+}
+
+/**
+ * Valida dados de cliente para recuperação
+ */
+export function validateClientRecovery(data) {
+  const errors = []
+  
+  // Telefone obrigatório
+  const phoneValidation = validatePhone(data.phone)
+  if (!phoneValidation.valid) {
+    errors.push(phoneValidation.error)
+  }
+  
+  // Nome obrigatório
+  const nameValidation = validateName(data.name)
+  if (!nameValidation.valid) {
+    errors.push(nameValidation.error)
+  }
+  
+  // CPF opcional, mas se fornecido deve ser válido
+  if (data.cpf) {
+    const cpfValidation = validateCPF(data.cpf)
+    if (!cpfValidation.valid) {
+      errors.push(cpfValidation.error)
+    }
+  }
+  
+  if (errors.length > 0) {
+    return { valid: false, errors }
+  }
+  
+  return { valid: true }
+}
+
+/**
+ * Valida dados de cliente para cadastro com CPF
+ */
+export function validateClientWithCPF(data) {
+  const errors = []
+  
+  // Validações básicas
+  const nameValidation = validateName(data.name)
+  if (!nameValidation.valid) {
+    errors.push(nameValidation.error)
+  }
+  
+  const phoneValidation = validatePhone(data.phone)
+  if (!phoneValidation.valid) {
+    errors.push(phoneValidation.error)
+  }
+  
+  // CPF opcional
+  if (data.cpf) {
+    const cpfValidation = validateCPF(data.cpf)
+    if (!cpfValidation.valid) {
+      errors.push(cpfValidation.error)
+    }
+  }
+  
+  // Data de nascimento opcional
+  if (data.birthDate) {
+    const birthDateValidation = validateBirthDate(data.birthDate)
+    if (!birthDateValidation.valid) {
+      errors.push(birthDateValidation.error)
+    }
+  }
+  
+  // Se é menor, nome do responsável é obrigatório
+  if (data.isMinor && (!data.guardianName || data.guardianName.trim().length < 2)) {
+    errors.push('Nome do responsável é obrigatório para menores de idade')
+  }
+  
+  if (errors.length > 0) {
+    return { valid: false, errors }
+  }
+  
+  return { valid: true }
+}
+
+/**
  * Valida produto
  */
 export function validateProduct(product) {

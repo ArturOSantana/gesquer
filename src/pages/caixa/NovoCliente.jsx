@@ -8,15 +8,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import QrScanner from '@/components/qr/QrScanner';
 import { useCardBinding } from '@/hooks/useCardBinding';
-import { 
-  User, 
-  Phone, 
+import { formatCPF, validateCPF, validateBirthDate, isMinor } from '@/lib/validators';
+import {
+  User,
+  Phone,
   CreditCard,
   QrCode,
   CheckCircle2,
   AlertCircle,
   ArrowLeft,
-  Scan
+  Scan,
+  Calendar,
+  Shield,
+  UserCheck
 } from 'lucide-react';
 
 /**
@@ -54,7 +58,11 @@ export default function NovoCliente() {
   // Dados do formulário
   const [formData, setFormData] = useState({
     name: '',
-    phone: ''
+    phone: '',
+    cpf: '',
+    birthDate: '',
+    isMinor: false,
+    guardianName: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -127,6 +135,33 @@ export default function NovoCliente() {
         }
         return null;
 
+      case 'cpf':
+        if (value) {
+          const cpfValidation = validateCPF(value);
+          if (!cpfValidation.valid) {
+            return cpfValidation.error;
+          }
+        }
+        return null;
+
+      case 'birthDate':
+        if (value) {
+          const dateValidation = validateBirthDate(value);
+          if (!dateValidation.valid) {
+            return dateValidation.error;
+          }
+        }
+        return null;
+
+      case 'guardianName':
+        if (formData.isMinor && !value.trim()) {
+          return 'Nome do responsável é obrigatório para menores de idade';
+        }
+        if (value && value.trim().length < 3) {
+          return 'Nome do responsável deve ter pelo menos 3 caracteres';
+        }
+        return null;
+
       default:
         return null;
     }
@@ -177,6 +212,63 @@ export default function NovoCliente() {
   };
 
   /**
+   * Formata CPF enquanto digita
+   */
+  const handleCPFChange = (e) => {
+    const formatted = formatCPF(e.target.value);
+    
+    setFormData(prev => ({
+      ...prev,
+      cpf: formatted
+    }));
+
+    const error = validateField('cpf', formatted);
+    setErrors(prev => ({
+      ...prev,
+      cpf: error
+    }));
+  };
+
+  /**
+   * Atualiza data de nascimento e verifica se é menor
+   */
+  const handleBirthDateChange = (e) => {
+    const value = e.target.value;
+    
+    setFormData(prev => ({
+      ...prev,
+      birthDate: value,
+      isMinor: value ? isMinor(value) : false
+    }));
+
+    const error = validateField('birthDate', value);
+    setErrors(prev => ({
+      ...prev,
+      birthDate: error
+    }));
+  };
+
+  /**
+   * Atualiza checkbox de menor de idade
+   */
+  const handleIsMinorChange = (e) => {
+    const checked = e.target.checked;
+    
+    setFormData(prev => ({
+      ...prev,
+      isMinor: checked,
+      guardianName: checked ? prev.guardianName : ''
+    }));
+
+    if (!checked) {
+      setErrors(prev => ({
+        ...prev,
+        guardianName: null
+      }));
+    }
+  };
+
+  /**
    * Valida formulário completo
    */
   const validateForm = () => {
@@ -206,10 +298,21 @@ export default function NovoCliente() {
     }
 
     try {
+      // Prepara dados do cliente
+      const clientData = {
+        name: formData.name.trim(),
+        phone: formData.phone || null,
+        cpf: formData.cpf || null,
+        birth_date: formData.birthDate || null,
+        is_minor: formData.isMinor,
+        guardian_name: formData.isMinor ? formData.guardianName.trim() : null
+      };
+
       const { success, card, client, error } = await bindCardToClient(
         scannedCard.uuid,
-        formData.name.trim(),
-        formData.phone || null
+        clientData.name,
+        clientData.phone,
+        clientData
       );
 
       if (error) {
@@ -237,7 +340,14 @@ export default function NovoCliente() {
   const handleReset = () => {
     setStep('scan');
     setScannedCard(null);
-    setFormData({ name: '', phone: '' });
+    setFormData({
+      name: '',
+      phone: '',
+      cpf: '',
+      birthDate: '',
+      isMinor: false,
+      guardianName: ''
+    });
     setErrors({});
     setSubmitError(null);
     setBoundCard(null);
@@ -417,6 +527,106 @@ export default function NovoCliente() {
                   Opcional - usado para identificar o cliente
                 </p>
               </div>
+
+              {/* CPF */}
+              <div className="space-y-2">
+                <Label htmlFor="cpf">
+                  CPF
+                  <span className="text-xs text-muted-foreground ml-2">(Opcional)</span>
+                </Label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="cpf"
+                    name="cpf"
+                    type="text"
+                    placeholder="000.000.000-00"
+                    value={formData.cpf}
+                    onChange={handleCPFChange}
+                    className={`pl-9 ${errors.cpf ? 'border-destructive' : ''}`}
+                    disabled={loading}
+                    maxLength={14}
+                  />
+                </div>
+                {errors.cpf && (
+                  <p className="text-sm text-destructive">{errors.cpf}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Opcional - usado para recuperação de cartão
+                </p>
+              </div>
+
+              {/* Data de Nascimento */}
+              <div className="space-y-2">
+                <Label htmlFor="birthDate">
+                  Data de Nascimento
+                  <span className="text-xs text-muted-foreground ml-2">(Opcional)</span>
+                </Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="birthDate"
+                    name="birthDate"
+                    type="date"
+                    value={formData.birthDate}
+                    onChange={handleBirthDateChange}
+                    className={`pl-9 ${errors.birthDate ? 'border-destructive' : ''}`}
+                    disabled={loading}
+                  />
+                </div>
+                {errors.birthDate && (
+                  <p className="text-sm text-destructive">{errors.birthDate}</p>
+                )}
+              </div>
+
+              {/* Checkbox Menor de Idade */}
+              {formData.birthDate && (
+                <div className="flex items-center space-x-2 p-3 bg-muted rounded-lg">
+                  <input
+                    type="checkbox"
+                    id="isMinor"
+                    checked={formData.isMinor}
+                    onChange={handleIsMinorChange}
+                    className="h-4 w-4"
+                    disabled={loading}
+                  />
+                  <Label htmlFor="isMinor" className="cursor-pointer">
+                    É menor de idade (menos de 18 anos)
+                  </Label>
+                </div>
+              )}
+
+              {/* Nome do Responsável */}
+              {formData.isMinor && (
+                <div className="space-y-2">
+                  <Label htmlFor="guardianName">
+                    Nome do Responsável <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <UserCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="guardianName"
+                      name="guardianName"
+                      type="text"
+                      placeholder="Nome completo do responsável"
+                      value={formData.guardianName}
+                      onChange={handleChange}
+                      className={`pl-9 ${errors.guardianName ? 'border-destructive' : ''}`}
+                      disabled={loading}
+                      required={formData.isMinor}
+                    />
+                  </div>
+                  {errors.guardianName && (
+                    <p className="text-sm text-destructive">{errors.guardianName}</p>
+                  )}
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription className="text-sm">
+                      Obrigatório para menores de 18 anos
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
 
               {/* Mensagem de erro */}
               {submitError && (

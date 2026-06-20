@@ -4,9 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import QrScanner from '@/components/qr/QrScanner';
+import { CardRecovery } from '@/components/cards/CardRecovery';
 import { useCardBinding } from '@/hooks/useCardBinding';
-import { 
+import {
   CreditCard,
   QrCode,
   CheckCircle2,
@@ -16,7 +18,8 @@ import {
   Scan,
   User,
   Phone,
-  DollarSign
+  DollarSign,
+  Shield
 } from 'lucide-react';
 
 /**
@@ -215,6 +218,18 @@ export default function TransferirCartao() {
     setSubmitError(null);
   };
 
+  /**
+   * Handler de sucesso da recuperação
+   */
+  const handleRecoverySuccess = (result) => {
+    setTransferResult({
+      oldCard: result.oldCard,
+      newCard: result.newCard,
+      transferredAmount: result.oldCard.balance
+    });
+    setStep('success');
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       {/* Cabeçalho */}
@@ -233,12 +248,99 @@ export default function TransferirCartao() {
           <h1 className="text-3xl font-bold">Transferir Cartão</h1>
         </div>
         <p className="text-muted-foreground">
-          Substitua um cartão desgastado por um novo
+          Substitua um cartão desgastado ou recupere um cartão perdido
         </p>
       </div>
 
-      {/* PASSO 1: Escanear Cartão Antigo */}
+      {/* Tabs para escolher método */}
       {step === 'scan-old' && (
+        <Tabs defaultValue="normal" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="normal">
+              <CreditCard className="h-4 w-4 mr-2" />
+              Transferência Normal
+            </TabsTrigger>
+            <TabsTrigger value="recovery">
+              <Shield className="h-4 w-4 mr-2" />
+              Recuperação de Cartão
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Transferência Normal */}
+          <TabsContent value="normal" className="mt-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Escanear Cartão Antigo</CardTitle>
+                <CardDescription>
+                  Escaneie o QR Code do cartão que será substituído
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {submitError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{submitError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex flex-col items-center gap-4 py-8">
+                  <div className="relative">
+                    <QrCode className="h-24 w-24 text-muted-foreground" />
+                    <div className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full bg-red-100 flex items-center justify-center">
+                      <span className="text-red-600 font-bold text-xs">1</span>
+                    </div>
+                  </div>
+                  
+                  <Button
+                    size="lg"
+                    onClick={() => openScanner('old')}
+                    disabled={loading}
+                    className="w-full max-w-xs"
+                  >
+                    <Scan className="h-5 w-5 mr-2" />
+                    {loading ? 'Verificando...' : 'Escanear Cartão Antigo'}
+                  </Button>
+
+                  <p className="text-sm text-muted-foreground text-center">
+                    Escaneie o cartão que o cliente deseja substituir
+                  </p>
+                </div>
+
+                {/* Scanner de QR Code */}
+                {showScanner && scannerMode === 'old' && (
+                  <div className="mt-4">
+                    <QrScanner
+                      onScan={handleScanOldCard}
+                      onError={(err) => {
+                        setSubmitError('Erro ao escanear: ' + err);
+                        setShowScanner(false);
+                      }}
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowScanner(false)}
+                      className="w-full mt-2"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Recuperação de Cartão */}
+          <TabsContent value="recovery" className="mt-4">
+            <CardRecovery
+              onSuccess={handleRecoverySuccess}
+              onCancel={() => navigate(-1)}
+            />
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* PASSO 1: Escanear Cartão Antigo (mantido para fluxo normal) */}
+      {step === 'scan-old-legacy' && (
         <Card>
           <CardHeader>
             <CardTitle>Escanear Cartão Antigo</CardTitle>
