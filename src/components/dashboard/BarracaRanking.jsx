@@ -39,8 +39,8 @@ export function BarracaRanking({ data }) {
     return (
       <Card>
         <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-base sm:text-lg">Ranking de Barracas</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">Top 5 barracas por faturamento</CardDescription>
+          <CardTitle className="text-base sm:text-lg">Ranking de PDVs</CardTitle>
+          <CardDescription className="text-xs sm:text-sm">Top 5 pontos de venda por faturamento</CardDescription>
         </CardHeader>
         <CardContent className="px-4 sm:px-6">
           <div className="text-center py-8 text-sm text-muted-foreground">
@@ -54,8 +54,8 @@ export function BarracaRanking({ data }) {
   return (
     <Card>
       <CardHeader className="px-4 sm:px-6">
-        <CardTitle className="text-base sm:text-lg">Ranking de Barracas</CardTitle>
-        <CardDescription className="text-xs sm:text-sm">Top 5 barracas por faturamento</CardDescription>
+        <CardTitle className="text-base sm:text-lg">Ranking de PDVs</CardTitle>
+        <CardDescription className="text-xs sm:text-sm">Top 5 pontos de venda por faturamento</CardDescription>
       </CardHeader>
       <CardContent className="px-4 sm:px-6">
         <div className="space-y-2 sm:space-y-3">

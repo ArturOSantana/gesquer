@@ -53,7 +53,7 @@ export default function Dashboard() {
         <div className="min-w-0 flex-1">
           <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Visão Geral</h1>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            Visão geral do sistema de gestão da quermesse
+            Visão geral do sistema de gestão de eventos
           </p>
         </div>
         <Button onClick={refresh} variant="outline" size="sm" className="min-h-[44px] w-full sm:w-auto">
@@ -84,9 +84,9 @@ export default function Dashboard() {
           description="Faturamento do dia"
         />
         <StatCard
-          title="Barracas Ativas"
+          title="PDVs Ativos"
           value={statistics?.barracasAtivas || 0}
-          description="Barracas em operação"
+          description="Pontos de venda em operação"
         />
         <StatCard
           title="Estoque Baixo"

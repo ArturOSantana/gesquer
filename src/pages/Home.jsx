@@ -10,10 +10,20 @@ export default function Home() {
   const { profile } = useAuth();
   const navigate = useNavigate();
 
-  // Redirecionar operador de barraca direto para tela de vendas
+  // Redirecionar usuários para suas páginas específicas
   useEffect(() => {
-    if (profile?.role === 'barraca') {
-      navigate('/sale', { replace: true });
+    if (profile) {
+      // SuperAdmin vai para dashboard específico
+      if (profile.role === 'superadmin') {
+        navigate('/superadmin', { replace: true });
+        return;
+      }
+      
+      // Operador de PDV vai direto para vendas
+      if (profile.role === 'pdv') {
+        navigate('/sale', { replace: true });
+        return;
+      }
     }
   }, [profile, navigate]);
 
@@ -49,8 +59,8 @@ export default function Home() {
           link: '/caixa/transferir-cartao',
         },
         {
-          title: 'Barracas',
-          description: 'Gerenciar barracas',
+          title: 'Pontos de Venda',
+          description: 'Gerenciar PDVs',
           icon: Store,
           link: '/barracas',
         },
@@ -111,8 +121,8 @@ export default function Home() {
       ];
     }
 
-    // Barraca - Apenas vendas (não deveria chegar aqui por causa do redirect)
-    if (profile.role === 'barraca') {
+    // PDV - Apenas vendas (não deveria chegar aqui por causa do redirect)
+    if (profile.role === 'pdv') {
       return [
         {
           title: 'Realizar Venda',
@@ -146,7 +156,7 @@ export default function Home() {
       {/* Hero Section */}
       <div className="text-center mb-8 sm:mb-12">
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4 text-foreground">
-          QuermesseOn!
+          Venditor
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground">
           Bem-vindo, {profile?.name}!

@@ -6,6 +6,8 @@ import { Button } from '../../components/ui/button'
 import { ArrowLeft, RefreshCw, AlertCircle, Wallet, TrendingUp, TrendingDown } from 'lucide-react'
 import { formatCurrency } from '../../lib/utils'
 import { Alert, AlertDescription } from '../../components/ui/alert'
+import { FEATURES } from '../../lib/features'
+import { PixRechargeButton } from '../../features/pix-recharge'
 
 export default function ExibirSaldo() {
   const { uuid } = useParams()
@@ -201,15 +203,27 @@ export default function ExibirSaldo() {
               Atualizado automaticamente
             </p>
           </div>
-          <Button 
-            onClick={fetchCardData}
-            variant="outline"
-            className="w-full"
-            size="lg"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Atualizar Agora
-          </Button>
+          
+          <div className="space-y-3">
+            {/* Botão PIX - Condicional */}
+            {FEATURES.PIX_RECHARGE && (
+              <PixRechargeButton
+                cardUuid={card.uuid}
+                cardNumber={card.card_number}
+                currentBalance={card.balance}
+              />
+            )}
+            
+            <Button
+              onClick={fetchCardData}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Atualizar Agora
+            </Button>
+          </div>
         </CardContent>
       </Card>
       
@@ -246,7 +260,7 @@ export default function ExibirSaldo() {
                     </p>
                     {tx.barraca && (
                       <p className="text-sm text-gray-600 truncate">
-                        {tx.barraca.name}
+                        PDV: {tx.barraca.name}
                       </p>
                     )}
                     <p className="text-xs text-gray-500">
@@ -273,7 +287,7 @@ export default function ExibirSaldo() {
       {/* Footer Info */}
       <div className="max-w-md mx-auto mt-6 text-center">
         <p className="text-xs text-gray-500">
-          Sistema de Gestão de Quermesse
+          Venditor - Sistema de Gestão de Eventos
         </p>
         <p className="text-xs text-gray-400 mt-1">
           Página atualizada automaticamente a cada 30 segundos

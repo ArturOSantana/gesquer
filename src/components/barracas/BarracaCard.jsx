@@ -5,7 +5,7 @@ import { Store, User, Edit, Trash2, Power, TrendingUp } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 /**
- * Componente de card para exibir informações de uma barraca
+ * Componente de card para exibir informações de um ponto de venda (PDV)
  */
 export function BarracaCard({ barraca, onEdit, onDelete, onToggleStatus, stats }) {
   const isActive = barraca.status === 'active';
@@ -73,23 +73,29 @@ export function BarracaCard({ barraca, onEdit, onDelete, onToggleStatus, stats }
 
       <CardFooter className="flex gap-2">
         <Button
+          variant="default"
+          size="sm"
+          onClick={() => navigate(`/barracas/${barraca.id}`)}
+          className="flex-1"
+        >
+          <Settings className="h-4 w-4 mr-2" />
+          Gerenciar
+        </Button>
+        
+        <Button
           variant="outline"
           size="sm"
           onClick={() => onEdit(barraca)}
-          className="flex-1"
         >
-          <Edit className="h-4 w-4 mr-2" />
-          Editar
+          <Edit className="h-4 w-4" />
         </Button>
-        
+
         <Button
           variant={isActive ? 'outline' : 'default'}
           size="sm"
           onClick={() => onToggleStatus(barraca.id, barraca.status)}
-          className="flex-1"
         >
-          <Power className="h-4 w-4 mr-2" />
-          {isActive ? 'Desativar' : 'Ativar'}
+          <Power className="h-4 w-4" />
         </Button>
 
         <Button

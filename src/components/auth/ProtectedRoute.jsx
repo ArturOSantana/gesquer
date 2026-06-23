@@ -35,13 +35,13 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
 
   // Verifica se o usuário tem permissão para acessar a rota
   if (allowedRoles.length > 0 && !allowedRoles.includes(profile?.role)) {
-    console.log('Sem permissão, redirecionando...');
+    console.log('❌ Sem permissão, redirecionando...');
     // Redireciona para a página inicial do perfil do usuário
     const redirectMap = {
-      superadmin: '/dashboard',
-      admin: '/dashboard',
-      caixa: '/caixa/novo-cliente',
-      barraca: '/sale',
+      superadmin: '/superadmin',
+      admin: '/visao',
+      caixa: '/caixa/recarga',
+      pdv: '/sale',
     };
 
     const redirectTo = redirectMap[profile?.role] || '/';

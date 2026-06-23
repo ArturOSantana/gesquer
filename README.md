@@ -1,4 +1,4 @@
-# QuermesseOn!
+# Venditor - Plataforma de Gestão para Eventos e Vendas Temporárias
 
 ## ⚠️ ALERTA - Correção de RLS Necessária
 
@@ -6,7 +6,19 @@ Se você está vendo erro "infinite recursion detected", execute IMEDIATAMENTE o
 
 Este erro impede login no sistema. A correção leva menos de 2 minutos.
 
-Sistema completo de gestão de quermesse com controle de cartões, vendas, estoque e transferências.
+**Sistema completo de créditos digitais, pontos de venda e controle de estoque para eventos, cantinas, festivais e estabelecimentos temporários.**
+
+Venditor é uma plataforma SaaS moderna que elimina o uso de dinheiro físico em eventos através de um sistema de créditos digitais. Ideal para quermesses, festas juninas, novenas, cantinas escolares, festivais, eventos corporativos e muito mais.
+
+### 🎯 Principais Benefícios
+
+- **Sem dinheiro físico**: Sistema 100% digital com QR Codes
+- **Controle total**: Acompanhe vendas e estoque em tempo real
+- **Multi-evento**: Gerencie múltiplos eventos simultaneamente
+- **Seguro**: Créditos não expiram e podem ser transferidos
+- **Fácil de usar**: Interface intuitiva para todos os perfis
+
+> **Nota:** Este sistema foi anteriormente conhecido como QuermesseOn. A renomeação para Venditor reflete a expansão do sistema para gestão de eventos em geral, não apenas quermesses.
 
 ## 🚀 Stack Tecnológica
 
@@ -32,7 +44,7 @@ Sistema completo de gestão de quermesse com controle de cartões, vendas, estoq
 ### Perfis de Usuário
 - **Admin**: Acesso total ao sistema
 - **Caixa**: Recarga de cartões e consultas
-- **Barraca**: Vendas e gestão de estoque
+- **Ponto de Venda (PDV)**: Vendas e gestão de estoque
 
 ## 🛠️ Setup do Projeto
 
@@ -82,6 +94,7 @@ src/
 │   ├── cards/       # Card management
 │   ├── sales/       # Sales components
 │   ├── stock/       # Stock management
+│   ├── barracas/    # Sales point management (PDV)
 │   └── transactions/# Transaction history
 ├── pages/           # Páginas da aplicação
 ├── lib/             # Utilitários e configurações
@@ -89,6 +102,15 @@ src/
 ├── store/           # Zustand store
 └── styles/          # Estilos globais
 ```
+
+## 🔄 Compatibilidade com QR Codes
+
+O sistema mantém compatibilidade com QR Codes antigos:
+- **Formato novo**: `VENDITOR:uuid`
+- **Formato legado**: `QUERMESSE:uuid` e `QUERMESSEON:uuid` (ainda funcionam)
+- **UUID puro**: Também suportado
+
+Novos QR Codes são gerados no formato Venditor, mas os antigos continuam funcionando normalmente.
 
 ## 🔒 Segurança
 

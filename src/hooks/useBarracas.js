@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useEvent } from '@/contexts/EventContext';
 
 // Cache global simples (fora do componente para persistir entre montagens)
 let barracasCache = null;
@@ -12,6 +13,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
  * Inclui sistema de cache para melhorar performance
  */
 export function useBarracas() {
+  const { currentEvent } = useEvent();
   const [barracas, setBarracas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,6 +23,10 @@ export function useBarracas() {
    */
   const fetchBarracas = useCallback(async (filters = {}, forceRefresh = false) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       // Verificar cache apenas se não houver filtros e não for refresh forçado
       const now = Date.now();
       const hasFilters = Object.keys(filters).length > 0;
@@ -39,6 +45,7 @@ export function useBarracas() {
       let query = supabase
         .from('barracas')
         .select('*')
+        .eq('event_id', currentEvent.id)
         .order('name', { ascending: true });
 
       // Aplica filtros
@@ -70,7 +77,7 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca barracas ativas
@@ -84,6 +91,10 @@ export function useBarracas() {
    */
   const getBarracaById = useCallback(async (barracaId) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -91,6 +102,7 @@ export function useBarracas() {
         .from('barracas')
         .select('*')
         .eq('id', barracaId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -103,7 +115,7 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Invalida o cache e força recarregamento
@@ -128,13 +140,18 @@ export function useBarracas() {
         throw new Error('Nome da barraca deve ter pelo menos 3 caracteres');
       }
 
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: insertError } = await supabase
         .from('barracas')
         .insert([{
           name: barracaData.name.trim(),
           description: barracaData.description?.trim() || null,
           responsible: barracaData.responsible?.trim() || null,
-          status: barracaData.status || 'active'
+          status: barracaData.status || 'active',
+          event_id: currentEvent.id
         }])
         .select()
         .single();
@@ -181,10 +198,15 @@ export function useBarracas() {
         updateData.status = barracaData.status;
       }
 
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: updateError } = await supabase
         .from('barracas')
         .update(updateData)
         .eq('id', barracaId)
+        .eq('event_id', currentEvent.id)
         .select()
         .single();
 
@@ -212,10 +234,15 @@ export function useBarracas() {
       const warnings = [];
 
       // Verifica produtos associados
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: products, error: productsError } = await supabase
         .from('products')
         .select('id, name, status')
-        .eq('barraca_id', barracaId);
+        .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id);
 
       if (productsError) throw productsError;
 
@@ -228,7 +255,8 @@ export function useBarracas() {
       const { data: sales, error: salesError } = await supabase
         .from('sales')
         .select('id')
-        .eq('barraca_id', barracaId);
+        .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id);
 
       if (salesError) throw salesError;
 
@@ -240,7 +268,8 @@ export function useBarracas() {
       const { data: users, error: usersError } = await supabase
         .from('users')
         .select('id, name, role')
-        .eq('barraca_id', barracaId);
+        .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id);
 
       if (usersError) throw usersError;
 
@@ -265,7 +294,7 @@ export function useBarracas() {
         error: err.message
       };
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Deleta uma barraca (apenas SuperAdmin)
@@ -291,16 +320,22 @@ export function useBarracas() {
         const { error: updateUsersError } = await supabase
           .from('users')
           .update({ barraca_id: null })
-          .eq('barraca_id', barracaId);
+          .eq('barraca_id', barracaId)
+          .eq('event_id', currentEvent.id);
 
         if (updateUsersError) throw updateUsersError;
       }
 
       // Deleta a barraca
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { error: deleteError } = await supabase
         .from('barracas')
         .delete()
-        .eq('id', barracaId);
+        .eq('id', barracaId)
+        .eq('event_id', currentEvent.id);
 
       if (deleteError) throw deleteError;
 
@@ -334,10 +369,15 @@ export function useBarracas() {
       setError(null);
 
       // Busca total de vendas
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select('total_amount, status')
-        .eq('barraca_id', barracaId);
+        .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id);
 
       if (salesError) throw salesError;
 
@@ -345,7 +385,8 @@ export function useBarracas() {
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select('id, status, stock_quantity')
-        .eq('barraca_id', barracaId);
+        .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id);
 
       if (productsError) throw productsError;
 
@@ -372,13 +413,17 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca produtos de uma barraca
    */
   const getBarracaProducts = useCallback(async (barracaId, filters = {}) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -386,6 +431,7 @@ export function useBarracas() {
         .from('products')
         .select('*')
         .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id)
         .order('name', { ascending: true });
 
       if (filters.status) {
@@ -404,13 +450,17 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca vendas de uma barraca
    */
   const getBarracaSales = useCallback(async (barracaId, filters = {}) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -428,6 +478,7 @@ export function useBarracas() {
           )
         `)
         .eq('barraca_id', barracaId)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false });
 
       if (filters.status) {
@@ -458,12 +509,17 @@ export function useBarracas() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Carrega barracas ao montar o componente
   useEffect(() => {
-    fetchBarracas();
-  }, [fetchBarracas]);
+    if (currentEvent?.id) {
+      fetchBarracas();
+    } else {
+      setBarracas([]);
+      setLoading(false);
+    }
+  }, [fetchBarracas, currentEvent?.id]);
 
   return {
     // Estado

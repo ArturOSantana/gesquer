@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/hooks/useAuth';
+import { useEvent } from '@/contexts/EventContext';
 
 /**
  * Hook para gerenciar transações
@@ -8,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth';
  */
 export function useTransactions() {
   const { profile, isBarraca } = useAuth();
+  const { currentEvent } = useEvent();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -17,6 +19,10 @@ export function useTransactions() {
    */
   const fetchTransactions = useCallback(async (filters = {}) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -60,6 +66,7 @@ export function useTransactions() {
             name
           )
         `)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false });
 
       // Aplica filtros
@@ -100,7 +107,7 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id, isBarraca, profile?.barraca_id]);
 
   /**
    * Busca transações de um cartão específico
@@ -121,6 +128,10 @@ export function useTransactions() {
    */
   const processSale = useCallback(async (saleData) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -158,7 +169,8 @@ export function useTransactions() {
         p_idempotency_key: idempotencyKey,
         p_card_id: card_id,
         p_barraca_id: effectiveBarracaId,
-        p_items: items
+        p_items: items,
+        p_event_id: currentEvent.id
       });
 
       if (rpcError) throw rpcError;
@@ -189,13 +201,17 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [fetchTransactions, isBarraca, profile?.barraca_id]);
+  }, [fetchTransactions, isBarraca, profile?.barraca_id, currentEvent?.id]);
 
   /**
    * Realiza recarga em um cartão usando stored procedure
    */
   const rechargeCard = useCallback(async (cardId, amount, description = 'Recarga de cartão') => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -207,7 +223,8 @@ export function useTransactions() {
         p_idempotency_key: idempotencyKey,
         p_card_id: cardId,
         p_amount: amount,
-        p_description: description
+        p_description: description,
+        p_event_id: currentEvent.id
       });
 
       if (rpcError) throw rpcError;
@@ -237,13 +254,17 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [fetchTransactions]);
+  }, [fetchTransactions, currentEvent?.id]);
 
   /**
    * Processa transferência entre cartões usando stored procedure
    */
   const processTransfer = useCallback(async (fromCardId, toCardId, amount, description = 'Transferência entre cartões') => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -256,7 +277,8 @@ export function useTransactions() {
         p_from_card_id: fromCardId,
         p_to_card_id: toCardId,
         p_amount: amount,
-        p_description: description
+        p_description: description,
+        p_event_id: currentEvent.id
       });
 
       if (rpcError) throw rpcError;
@@ -285,7 +307,7 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Calcula estatísticas de transações
@@ -321,6 +343,10 @@ export function useTransactions() {
    */
   const getTransactionById = useCallback(async (transactionId) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -348,6 +374,7 @@ export function useTransactions() {
           )
         `)
         .eq('id', transactionId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -360,7 +387,7 @@ export function useTransactions() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca transações recentes (últimas 24h)
@@ -377,8 +404,13 @@ export function useTransactions() {
 
   // Carrega transações ao montar o componente
   useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+    if (currentEvent?.id) {
+      fetchTransactions();
+    } else {
+      setTransactions([]);
+      setLoading(false);
+    }
+  }, [fetchTransactions, currentEvent?.id]);
 
   return {
     // Estado

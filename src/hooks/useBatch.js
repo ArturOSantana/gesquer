@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useEvent } from '@/contexts/EventContext';
 
 const QR_PREFIX = 'QUERMESSEON:';
 
@@ -32,13 +33,19 @@ function getCardStatusLabel(status, clientName) {
  * Hook para gerenciar lotes de cartões pré-gerados
  */
 export function useBatch() {
+  const { currentEvent } = useEvent();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const loadUsersMap = async () => {
+    if (!currentEvent?.id) {
+      throw new Error('Nenhum evento selecionado');
+    }
+
     const { data, error: usersError } = await supabase
       .from('users')
-      .select('id, name');
+      .select('id, name')
+      .eq('event_id', currentEvent.id);
 
     if (usersError) throw usersError;
 
@@ -56,6 +63,10 @@ export function useBatch() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const timestamp = new Date().toISOString().split('T')[0].replace(/-/g, '');
       const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
       const batchCode = `BATCH-${timestamp}-${random}`;
@@ -67,7 +78,8 @@ export function useBatch() {
           quantity,
           description,
           generated_by: generatedBy,
-          status: 'active'
+          status: 'active',
+          event_id: currentEvent.id
         })
         .select()
         .single();
@@ -78,7 +90,8 @@ export function useBatch() {
         batch_id: batch.id,
         is_pre_generated: true,
         status: 'pending',
-        balance: 0
+        balance: 0,
+        event_id: currentEvent.id
       }));
 
       const { data: generatedCards, error: cardsError } = await supabase
@@ -113,12 +126,17 @@ export function useBatch() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       let query = supabase
         .from('card_batches')
         .select(`
           *,
           cards:cards(count)
         `)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false });
 
       if (filters.status && filters.status !== 'all') {
@@ -168,11 +186,16 @@ export function useBatch() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const [{ data: batch, error: batchError }, { data: cards, error: cardsError }, usersMap] = await Promise.all([
         supabase
           .from('card_batches')
           .select('*')
           .eq('id', batchId)
+          .eq('event_id', currentEvent.id)
           .single(),
         supabase
           .from('cards')
@@ -191,6 +214,7 @@ export function useBatch() {
             )
           `)
           .eq('batch_id', batchId)
+          .eq('event_id', currentEvent.id)
           .order('created_at', { ascending: true }),
         loadUsersMap()
       ]);
@@ -343,10 +367,15 @@ export function useBatch() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { error: batchError } = await supabase
         .from('card_batches')
         .update({ status: 'cancelled' })
-        .eq('id', batchId);
+        .eq('id', batchId)
+        .eq('event_id', currentEvent.id);
 
       if (batchError) throw batchError;
 
@@ -354,7 +383,8 @@ export function useBatch() {
         .from('cards')
         .update({ status: 'inactive' })
         .eq('batch_id', batchId)
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .eq('event_id', currentEvent.id);
 
       if (cardsError) throw cardsError;
 

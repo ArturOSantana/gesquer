@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, BarChart3, Menu, LogOut, User, Users, Wallet, UserPlus, Layers, ChevronDown, X } from 'lucide-react'
+import { Home, LayoutDashboard, QrCode, ShoppingCart, Package, ArrowLeftRight, History, Store, CreditCard, BarChart3, Menu, LogOut, User, Users, Wallet, UserPlus, Layers, ChevronDown, X, Building2 } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../hooks/useAuth'
+import { useEvent } from '../../contexts/EventContext'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { getRoleLabel, getRoleBadgeColor } from '../../lib/permissions'
@@ -12,6 +13,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState(null)
   const { profile, logout, isAuthenticated } = useAuth()
+  const { currentEvent, events, switchEvent } = useEvent()
   const mobileMenuRef = useRef(null)
   const dropdownRef = useRef(null)
 
@@ -63,7 +65,7 @@ export default function Header() {
           name: 'Gestão',
           icon: Store,
           dropdown: [
-            { name: 'Barracas', href: '/barracas', icon: Store },
+            { name: 'Pontos de Venda', href: '/barracas', icon: Store },
             { name: 'Estoque', href: '/estoque', icon: Package },
             { name: 'Cartões', href: '/cards', icon: CreditCard },
           ]
@@ -80,6 +82,7 @@ export default function Header() {
           name: 'Admin',
           icon: Users,
           dropdown: [
+            { name: 'Organizações', href: '/admin/organizations', icon: Building2 },
             { name: 'Usuários', href: '/admin/usuarios', icon: Users },
             { name: 'Gerar Lote', href: '/admin/gerar-lote', icon: Layers },
             { name: 'Ver Lotes', href: '/admin/batches', icon: Layers },
@@ -105,7 +108,7 @@ export default function Header() {
           name: 'Gestão',
           icon: Store,
           dropdown: [
-            { name: 'Barracas', href: '/barracas', icon: Store },
+            { name: 'Pontos de Venda', href: '/barracas', icon: Store },
             { name: 'Estoque', href: '/estoque', icon: Package },
             { name: 'Cartões', href: '/cards', icon: CreditCard },
           ]
@@ -131,8 +134,8 @@ export default function Header() {
       ]
     }
 
-    // Menu para BARRACA - Simples e direto
-    if (profile.role === 'barraca') {
+    // Menu para PDV - Simples e direto
+    if (profile.role === 'pdv') {
       return [
         { name: 'Venda', href: '/sale', icon: ShoppingCart },
         { name: 'Histórico', href: '/historico', icon: History },
@@ -171,7 +174,7 @@ export default function Header() {
               <QrCode className="h-6 w-6" />
             </div>
             <span className="hidden font-bold sm:inline-block">
-              QuermesseOn!
+              Venditor
             </span>
           </Link>
 
@@ -249,6 +252,20 @@ export default function Header() {
 
           {/* User Info & Logout */}
           <div className="hidden md:flex items-center gap-3">
+            {events.length > 1 && (
+              <select
+                value={currentEvent?.id || ''}
+                onChange={(e) => switchEvent(e.target.value)}
+                className="rounded border px-3 py-1 text-sm"
+                aria-label="Selecionar evento"
+              >
+                {events.map((event) => (
+                  <option key={event.id} value={event.id}>
+                    {event.name}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-muted-foreground" />
               <div className="text-sm">
@@ -312,6 +329,26 @@ export default function Header() {
                 Sair
               </Button>
             </div>
+
+            {events.length > 1 && (
+              <div className="mb-4 border-b pb-4">
+                <label htmlFor="mobile-event-selector" className="mb-2 block text-sm font-medium">
+                  Evento atual
+                </label>
+                <select
+                  id="mobile-event-selector"
+                  value={currentEvent?.id || ''}
+                  onChange={(e) => switchEvent(e.target.value)}
+                  className="w-full rounded border px-3 py-2 text-sm"
+                >
+                  {events.map((event) => (
+                    <option key={event.id} value={event.id}>
+                      {event.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Navigation Links */}
             <div className="space-y-2">

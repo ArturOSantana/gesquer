@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useEvent } from '@/contexts/EventContext';
 
 /**
  * Hook para gerenciar produtos
  * Fornece funções para CRUD completo de produtos e gestão de estoque
  */
 export function useProducts(barracaId = null) {
+  const { currentEvent } = useEvent();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -16,6 +18,10 @@ export function useProducts(barracaId = null) {
    */
   const fetchProducts = useCallback(async (filters = {}) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -29,6 +35,7 @@ export function useProducts(barracaId = null) {
             status
           )
         `)
+        .eq('event_id', currentEvent.id)
         .order('name', { ascending: true });
 
       // Aplica filtros
@@ -61,7 +68,7 @@ export function useProducts(barracaId = null) {
     } finally {
       setLoading(false);
     }
-  }, [barracaId]);
+  }, [barracaId, currentEvent?.id]);
 
   /**
    * Busca produtos ativos
@@ -78,6 +85,10 @@ export function useProducts(barracaId = null) {
    */
   const getProductById = useCallback(async (productId) => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -92,6 +103,7 @@ export function useProducts(barracaId = null) {
           )
         `)
         .eq('id', productId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -104,7 +116,7 @@ export function useProducts(barracaId = null) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Cria um novo produto
@@ -127,6 +139,10 @@ export function useProducts(barracaId = null) {
         throw new Error('Preço deve ser maior ou igual a zero');
       }
 
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: insertError } = await supabase
         .from('products')
         .insert([{
@@ -136,7 +152,8 @@ export function useProducts(barracaId = null) {
           price: parseFloat(productData.price),
           stock_quantity: parseInt(productData.stock_quantity) || 0,
           min_stock: parseInt(productData.min_stock) || 0,
-          status: productData.status || 'active'
+          status: productData.status || 'active',
+          event_id: currentEvent.id
         }])
         .select()
         .single();
@@ -193,10 +210,15 @@ export function useProducts(barracaId = null) {
         updateData.status = productData.status;
       }
 
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: updateError } = await supabase
         .from('products')
         .update(updateData)
         .eq('id', productId)
+        .eq('event_id', currentEvent.id)
         .select()
         .single();
 
@@ -224,10 +246,15 @@ export function useProducts(barracaId = null) {
       const warnings = [];
 
       // Busca informações do produto
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: product, error: productError } = await supabase
         .from('products')
         .select('stock_quantity, name, price')
         .eq('id', productId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (productError) throw productError;
@@ -277,7 +304,7 @@ export function useProducts(barracaId = null) {
         error: err.message
       };
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Deleta um produto (apenas SuperAdmin)
@@ -296,10 +323,15 @@ export function useProducts(barracaId = null) {
       }
 
       // Deleta o produto
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { error: deleteError } = await supabase
         .from('products')
         .delete()
-        .eq('id', productId);
+        .eq('id', productId)
+        .eq('event_id', currentEvent.id);
 
       if (deleteError) throw deleteError;
 
@@ -325,10 +357,15 @@ export function useProducts(barracaId = null) {
       setError(null);
 
       // Busca produto atual
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: product } = await supabase
         .from('products')
         .select('stock_quantity')
         .eq('id', productId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (!product) {
@@ -357,6 +394,7 @@ export function useProducts(barracaId = null) {
         .from('products')
         .update({ stock_quantity: newQuantity })
         .eq('id', productId)
+        .eq('event_id', currentEvent.id)
         .select()
         .single();
 
@@ -391,9 +429,14 @@ export function useProducts(barracaId = null) {
       setLoading(true);
       setError(null);
 
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       let query = supabase
         .from('low_stock_products')
         .select('*')
+        .eq('event_id', currentEvent.id)
         .order('stock_quantity', { ascending: true });
 
       if (barracaIdFilter || barracaId) {
@@ -413,17 +456,22 @@ export function useProducts(barracaId = null) {
     } finally {
       setLoading(false);
     }
-  }, [barracaId]);
+  }, [barracaId, currentEvent?.id]);
 
   /**
    * Verifica se um produto tem estoque suficiente
    */
   const checkStock = useCallback(async (productId, quantity) => {
     try {
+      if (!currentEvent?.id) {
+        return { available: false, message: 'Nenhum evento selecionado' };
+      }
+
       const { data: product } = await supabase
         .from('products')
         .select('stock_quantity, name')
         .eq('id', productId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (!product) {
@@ -447,7 +495,7 @@ export function useProducts(barracaId = null) {
       console.error('Erro ao verificar estoque:', err);
       return { available: false, message: err.message };
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca histórico de vendas de um produto
@@ -513,10 +561,15 @@ export function useProducts(barracaId = null) {
       setLoading(true);
       setError(null);
 
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: saleItems } = await supabase
         .from('sale_items')
         .select('quantity, subtotal')
-        .eq('product_id', productId);
+        .eq('product_id', productId)
+        .eq('event_id', currentEvent.id);
 
       const totalQuantitySold = saleItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
       const totalRevenue = saleItems?.reduce((sum, item) => sum + parseFloat(item.subtotal), 0) || 0;
@@ -536,17 +589,26 @@ export function useProducts(barracaId = null) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Carrega produtos ao montar o componente
   useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+    if (currentEvent?.id) {
+      fetchProducts();
+    } else {
+      setProducts([]);
+      setLoading(false);
+    }
+  }, [fetchProducts, currentEvent?.id]);
 
   // Monitora produtos com estoque baixo
   useEffect(() => {
-    fetchLowStockProducts();
-  }, [fetchLowStockProducts]);
+    if (currentEvent?.id) {
+      fetchLowStockProducts();
+    } else {
+      setLowStockProducts([]);
+    }
+  }, [fetchLowStockProducts, currentEvent?.id]);
 
   return {
     // Estado

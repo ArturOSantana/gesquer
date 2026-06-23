@@ -5,12 +5,13 @@
 
 /**
  * Extrai o UUID do cartão de diferentes formatos de QR Code
- * 
+ *
  * Formatos suportados:
  * 1. URL completa: http://dominio.com/consulta/uuid
- * 2. Formato antigo: QUERMESSEON:uuid
- * 3. UUID puro: uuid
- * 
+ * 2. Formato novo: VENDITOR:uuid
+ * 3. Formato legado: QUERMESSE:uuid ou QUERMESSEON:uuid (compatibilidade)
+ * 4. UUID puro: uuid
+ *
  * @param {string} qrCodeContent - Conteúdo lido do QR Code
  * @returns {string|null} - UUID extraído ou null se inválido
  */
@@ -31,14 +32,27 @@ export function extractUuidFromQrCode(qrCodeContent) {
     }
   }
   
-  // Formato 2: QUERMESSEON:uuid (formato antigo)
-  if (content.toUpperCase().startsWith('QUERMESSEON:')) {
-    const uuid = content.substring('QUERMESSEON:'.length)
-    console.log('✓ UUID extraído de formato antigo:', uuid)
+  // Formato 2: VENDITOR:uuid (formato novo)
+  if (content.toUpperCase().startsWith('VENDITOR:')) {
+    const uuid = content.substring('VENDITOR:'.length)
+    console.log('✓ UUID extraído de formato Venditor:', uuid)
     return uuid
   }
   
-  // Formato 3: UUID puro (validar se parece com UUID)
+  // Formato 3: QUERMESSE:uuid ou QUERMESSEON:uuid (formato legado - compatibilidade)
+  if (content.toUpperCase().startsWith('QUERMESSE:')) {
+    const uuid = content.substring('QUERMESSE:'.length)
+    console.log('✓ UUID extraído de formato legado QUERMESSE:', uuid)
+    return uuid
+  }
+  
+  if (content.toUpperCase().startsWith('QUERMESSEON:')) {
+    const uuid = content.substring('QUERMESSEON:'.length)
+    console.log('✓ UUID extraído de formato legado QUERMESSEON:', uuid)
+    return uuid
+  }
+  
+  // Formato 4: UUID puro (validar se parece com UUID)
   // UUID tem formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
   const uuidRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
   if (uuidRegex.test(content)) {
@@ -78,7 +92,7 @@ export function debugQrCode(qrCodeContent) {
 
 /**
  * Detecta o formato do QR Code
- * @param {string} qrCodeContent 
+ * @param {string} qrCodeContent
  * @returns {string}
  */
 function detectFormat(qrCodeContent) {
@@ -87,12 +101,34 @@ function detectFormat(qrCodeContent) {
   const content = qrCodeContent.trim()
   
   if (content.includes('/consulta/')) return 'url_completa'
-  if (content.toUpperCase().startsWith('QUERMESSEON:')) return 'formato_antigo'
+  if (content.toUpperCase().startsWith('VENDITOR:')) return 'formato_venditor'
+  if (content.toUpperCase().startsWith('QUERMESSE:')) return 'formato_legado_quermesse'
+  if (content.toUpperCase().startsWith('QUERMESSEON:')) return 'formato_legado_quermesseon'
   
   const uuidRegex = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
   if (uuidRegex.test(content)) return 'uuid_puro'
   
   return 'desconhecido'
+}
+
+/**
+ * Gera conteúdo de QR Code no formato Venditor
+ * @param {string} cardId - UUID do cartão
+ * @returns {string} - Conteúdo formatado para QR Code
+ */
+export function generateQRCode(cardId) {
+  return `VENDITOR:${cardId}`
+}
+
+/**
+ * Verifica se um QR Code usa formato legado
+ * @param {string} qrCodeContent
+ * @returns {boolean}
+ */
+export function isLegacyFormat(qrCodeContent) {
+  if (!qrCodeContent) return false
+  const content = qrCodeContent.trim().toUpperCase()
+  return content.startsWith('QUERMESSE:') || content.startsWith('QUERMESSEON:')
 }
 
 // Made with Bob

@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Store, AlertCircle } from 'lucide-react';
 
 /**
- * Componente de formulário para criar/editar barracas
+ * Componente de formulário para criar/editar pontos de venda (PDVs)
  */
 export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
   const [formData, setFormData] = useState({
@@ -77,12 +77,12 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
           </div>
           <div>
             <CardTitle>
-              {barraca ? 'Editar Barraca' : 'Nova Barraca'}
+              {barraca ? 'Editar Ponto de Venda' : 'Novo Ponto de Venda'}
             </CardTitle>
             <CardDescription>
-              {barraca 
-                ? 'Atualize as informações da barraca' 
-                : 'Preencha os dados para criar uma nova barraca'}
+              {barraca
+                ? 'Atualize as informações do ponto de venda'
+                : 'Preencha os dados para criar um novo ponto de venda'}
             </CardDescription>
           </div>
         </div>
@@ -93,7 +93,7 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
           {/* Nome */}
           <div className="space-y-2">
             <Label htmlFor="name">
-              Nome da Barraca <span className="text-red-500">*</span>
+              Nome do Ponto de Venda <span className="text-red-500">*</span>
             </Label>
             <Input
               id="name"
@@ -187,7 +187,7 @@ export function BarracaForm({ barraca, onSubmit, onCancel, loading }) {
                 Salvando...
               </>
             ) : (
-              barraca ? 'Atualizar' : 'Criar Barraca'
+              barraca ? 'Atualizar' : 'Criar Ponto de Venda'
             )}
           </Button>
         </CardFooter>

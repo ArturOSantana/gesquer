@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Search, Plus, Store, AlertCircle, Loader2 } from 'lucide-react';
 
 /**
- * Componente de lista de barracas com busca e filtros
+ * Componente de lista de pontos de venda com busca e filtros
  */
 export function BarracaList({ 
   barracas, 
@@ -61,7 +61,7 @@ export function BarracaList({
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Erro ao carregar barracas: {error}
+          Erro ao carregar pontos de venda: {error}
         </AlertDescription>
       </Alert>
     );
@@ -74,7 +74,7 @@ export function BarracaList({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            
+            placeholder="Buscar pontos de venda..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -94,7 +94,7 @@ export function BarracaList({
         {onAdd && (
           <Button onClick={onAdd}>
             <Plus className="h-4 w-4 mr-2" />
-            Nova Barraca
+            Novo PDV
           </Button>
         )}
       </div>
@@ -102,17 +102,17 @@ export function BarracaList({
       {/* Estatísticas gerais */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Total de Barracas</p>
+          <p className="text-sm text-muted-foreground">Total de PDVs</p>
           <p className="text-2xl font-bold">{barracas.length}</p>
         </div>
         <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Barracas Ativas</p>
+          <p className="text-sm text-muted-foreground">PDVs Ativos</p>
           <p className="text-2xl font-bold text-green-600">
             {barracas.filter(b => b.status === 'active').length}
           </p>
         </div>
         <div className="bg-card border rounded-lg p-4">
-          <p className="text-sm text-muted-foreground">Barracas Inativas</p>
+          <p className="text-sm text-muted-foreground">PDVs Inativos</p>
           <p className="text-2xl font-bold text-gray-500">
             {barracas.filter(b => b.status === 'inactive').length}
           </p>
@@ -131,19 +131,19 @@ export function BarracaList({
         <div className="text-center py-12">
           <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">
-            {searchTerm || statusFilter !== 'all' 
-              ? 'Nenhuma barraca encontrada' 
-              : 'Nenhuma barraca cadastrada'}
+            {searchTerm || statusFilter !== 'all'
+              ? 'Nenhum ponto de venda encontrado'
+              : 'Nenhum ponto de venda cadastrado'}
           </h3>
           <p className="text-muted-foreground mb-4">
             {searchTerm || statusFilter !== 'all'
               ? 'Tente ajustar os filtros de busca'
-              : 'Comece criando sua primeira barraca'}
+              : 'Comece criando seu primeiro ponto de venda'}
           </p>
           {onAdd && !searchTerm && statusFilter === 'all' && (
             <Button onClick={onAdd}>
               <Plus className="h-4 w-4 mr-2" />
-              Criar Primeira Barraca
+              Criar Primeiro PDV
             </Button>
           )}
         </div>
@@ -167,7 +167,7 @@ export function BarracaList({
       {/* Contador de resultados */}
       {!loading && filteredBarracas.length > 0 && (
         <p className="text-sm text-muted-foreground text-center">
-          Mostrando {filteredBarracas.length} de {barracas.length} barraca(s)
+          Mostrando {filteredBarracas.length} de {barracas.length} ponto(s) de venda
         </p>
       )}
     </div>

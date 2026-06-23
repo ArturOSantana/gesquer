@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { validatePhone, validateEmail, validateCPF } from '@/lib/validators';
+import { useEvent } from '@/contexts/EventContext';
 
 /**
  * Hook para gerenciar cartões e clientes
  * Fornece funções CRUD e estado para cartões
  */
 export function useCards() {
+  const { currentEvent } = useEvent();
   const [cards, setCards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,12 +21,17 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       let query = supabase
         .from('cards')
         .select(`
           *,
           client:clients(*)
         `)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false });
 
       // Aplicar filtros
@@ -52,7 +59,7 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca um cartão específico por UUID
@@ -62,6 +69,10 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: fetchError } = await supabase
         .from('cards')
         .select(`
@@ -69,6 +80,7 @@ export function useCards() {
           client:clients(*)
         `)
         .eq('uuid', uuid)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -81,7 +93,7 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca um cartão por ID do cliente
@@ -91,6 +103,10 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: fetchError } = await supabase
         .from('cards')
         .select(`
@@ -98,6 +114,7 @@ export function useCards() {
           client:clients(*)
         `)
         .eq('client_id', clientId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -110,7 +127,7 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Cria um novo cartão com cliente
@@ -120,6 +137,10 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       // Validações
       if (!clientData.name || clientData.name.trim().length < 3) {
         throw new Error('Nome deve ter pelo menos 3 caracteres');
@@ -142,6 +163,7 @@ export function useCards() {
         const { data: existingClient } = await supabase
           .from('clients')
           .select('id')
+          .eq('event_id', currentEvent.id)
           .or(
             clientData.cpf ? `cpf.eq.${clientData.cpf}` : '',
             clientData.phone ? `phone.eq.${clientData.phone}` : ''
@@ -161,6 +183,7 @@ export function useCards() {
           phone: clientData.phone || null,
           email: clientData.email || null,
           cpf: clientData.cpf || null,
+          event_id: currentEvent.id,
         }])
         .select()
         .single();
@@ -174,6 +197,7 @@ export function useCards() {
           client_id: client.id,
           balance: clientData.initialBalance || 0,
           status: 'active',
+          event_id: currentEvent.id,
         }])
         .select(`
           *,
@@ -194,7 +218,7 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Atualiza informações do cliente
@@ -204,6 +228,10 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       // Se houver atualizações do cliente
       if (updates.client) {
         const clientUpdates = updates.client;
@@ -230,6 +258,7 @@ export function useCards() {
           .from('cards')
           .select('client_id')
           .eq('id', cardId)
+          .eq('event_id', currentEvent.id)
           .single();
 
         if (!card) throw new Error('Cartão não encontrado');
@@ -238,7 +267,8 @@ export function useCards() {
         const { error: clientError } = await supabase
           .from('clients')
           .update(clientUpdates)
-          .eq('id', card.client_id);
+          .eq('id', card.client_id)
+          .eq('event_id', currentEvent.id);
 
         if (clientError) throw clientError;
       }
@@ -248,7 +278,8 @@ export function useCards() {
         const { error: cardError } = await supabase
           .from('cards')
           .update({ status: updates.status })
-          .eq('id', cardId);
+          .eq('id', cardId)
+          .eq('event_id', currentEvent.id);
 
         if (cardError) throw cardError;
       }
@@ -261,6 +292,7 @@ export function useCards() {
           client:clients(*)
         `)
         .eq('id', cardId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (fetchError) throw fetchError;
@@ -278,7 +310,7 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Verifica dependências de um cartão antes de deletar
@@ -289,6 +321,10 @@ export function useCards() {
       const warnings = [];
 
       // Busca informações do cartão
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: card, error: cardError } = await supabase
         .from('cards')
         .select(`
@@ -297,6 +333,7 @@ export function useCards() {
           client:clients(name)
         `)
         .eq('id', cardId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (cardError) throw cardError;
@@ -312,6 +349,7 @@ export function useCards() {
         .from('transactions')
         .select('id, type, created_at')
         .eq('card_id', cardId)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false });
 
       if (transactionsError) throw transactionsError;
@@ -324,7 +362,8 @@ export function useCards() {
       const { data: sales, error: salesError } = await supabase
         .from('sales')
         .select('id')
-        .eq('card_id', cardId);
+        .eq('card_id', cardId)
+        .eq('event_id', currentEvent.id);
 
       if (salesError) throw salesError;
 
@@ -349,7 +388,7 @@ export function useCards() {
         error: err.message
       };
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Deleta um cartão (apenas SuperAdmin)
@@ -360,6 +399,10 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       // Verifica dependências
       const { dependencies } = await checkCardDependencies(cardId);
 
@@ -372,7 +415,8 @@ export function useCards() {
         const { error: deleteError } = await supabase
           .from('cards')
           .delete()
-          .eq('id', cardId);
+          .eq('id', cardId)
+          .eq('event_id', currentEvent.id);
 
         if (deleteError) throw deleteError;
       } else {
@@ -380,7 +424,8 @@ export function useCards() {
         const { error: updateError } = await supabase
           .from('cards')
           .update({ status: 'inactive' })
-          .eq('id', cardId);
+          .eq('id', cardId)
+          .eq('event_id', currentEvent.id);
 
         if (updateError) throw updateError;
       }
@@ -406,6 +451,10 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       if (amount <= 0) {
         throw new Error('Valor de recarga deve ser maior que zero');
       }
@@ -415,6 +464,7 @@ export function useCards() {
         .from('cards')
         .select('balance, status')
         .eq('id', cardId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       if (!card) throw new Error('Cartão não encontrado');
@@ -429,7 +479,8 @@ export function useCards() {
       const { error: updateError } = await supabase
         .from('cards')
         .update({ balance: newBalance })
-        .eq('id', cardId);
+        .eq('id', cardId)
+        .eq('event_id', currentEvent.id);
 
       if (updateError) throw updateError;
 
@@ -442,6 +493,7 @@ export function useCards() {
           amount: amount,
           balance_after: newBalance,
           description: 'Recarga de saldo',
+          event_id: currentEvent.id,
         }]);
 
       if (transactionError) throw transactionError;
@@ -454,6 +506,7 @@ export function useCards() {
           client:clients(*)
         `)
         .eq('id', cardId)
+        .eq('event_id', currentEvent.id)
         .single();
 
       // Atualiza lista local
@@ -469,7 +522,7 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   /**
    * Busca transações de um cartão
@@ -479,10 +532,15 @@ export function useCards() {
     setError(null);
 
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error: fetchError } = await supabase
         .from('transactions')
         .select('*')
         .eq('card_id', cardId)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false })
         .limit(limit);
 
@@ -496,12 +554,17 @@ export function useCards() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Carrega cartões ao montar o componente
   useEffect(() => {
-    fetchCards();
-  }, [fetchCards]);
+    if (currentEvent?.id) {
+      fetchCards();
+    } else {
+      setCards([]);
+      setLoading(false);
+    }
+  }, [fetchCards, currentEvent?.id]);
 
   return {
     cards,

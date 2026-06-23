@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Store } from 'lucide-react';
 
 /**
- * Página de gerenciamento de barracas
+ * Página de gerenciamento de pontos de venda (PDVs)
  */
 export default function BarracaManagement() {
   const navigate = useNavigate();
@@ -30,13 +30,13 @@ export default function BarracaManagement() {
   const [deletingBarracaId, setDeletingBarracaId] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
 
-  // Abre formulário para nova barraca
+  // Abre formulário para novo ponto de venda
   const handleAdd = () => {
     setEditingBarraca(null);
     setShowForm(true);
   };
 
-  // Abre formulário para editar barraca
+  // Abre formulário para editar ponto de venda
   const handleEdit = (barraca) => {
     setEditingBarraca(barraca);
     setShowForm(true);
@@ -57,8 +57,8 @@ export default function BarracaManagement() {
         }
         
         toast({
-          title: 'Barraca atualizada!',
-          description: 'As informações da barraca foram atualizadas com sucesso.',
+          title: 'Ponto de Venda atualizado!',
+          description: 'As informações do PDV foram atualizadas com sucesso.',
         });
       } else {
         result = await createBarraca(formData);
@@ -68,8 +68,8 @@ export default function BarracaManagement() {
         }
         
         toast({
-          title: 'Barraca criada!',
-          description: 'A nova barraca foi criada com sucesso.',
+          title: 'Ponto de Venda criado!',
+          description: 'O novo PDV foi criado com sucesso.',
         });
       }
       
@@ -92,7 +92,7 @@ export default function BarracaManagement() {
     setEditingBarraca(null);
   };
 
-  // Confirma exclusão de barraca
+  // Confirma exclusão de ponto de venda
   const handleDeleteConfirm = async () => {
     if (!deletingBarracaId) return;
     
@@ -104,8 +104,8 @@ export default function BarracaManagement() {
       }
       
       toast({
-        title: 'Barraca deletada!',
-        description: 'A barraca foi removida com sucesso.',
+        title: 'Ponto de Venda deletado!',
+        description: 'O PDV foi removido com sucesso.',
       });
     } catch (err) {
       toast({
@@ -118,7 +118,7 @@ export default function BarracaManagement() {
     }
   };
 
-  // Alterna status da barraca
+  // Alterna status do ponto de venda
   const handleToggleStatus = async (barracaId, currentStatus) => {
     try {
       const result = await toggleBarracaStatus(barracaId, currentStatus);
@@ -127,10 +127,10 @@ export default function BarracaManagement() {
         throw new Error(result.error);
       }
       
-      const newStatus = currentStatus === 'active' ? 'inativa' : 'ativa';
+      const newStatus = currentStatus === 'active' ? 'inativo' : 'ativo';
       toast({
         title: 'Status atualizado!',
-        description: `A barraca foi ${newStatus} com sucesso.`,
+        description: `O ponto de venda foi ${newStatus} com sucesso.`,
       });
     } catch (err) {
       toast({
@@ -150,9 +150,9 @@ export default function BarracaManagement() {
               <Store className="h-8 w-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Gerenciar Barracas</h1>
+              <h1 className="text-3xl font-bold">Gerenciar Pontos de Venda</h1>
               <p className="text-muted-foreground">
-                Cadastre e gerencie as barracas da quermesse
+                Cadastre e gerencie os pontos de venda do evento
               </p>
             </div>
           </div>
@@ -176,12 +176,12 @@ export default function BarracaManagement() {
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingBarraca ? 'Editar Barraca' : 'Nova Barraca'}
+                {editingBarraca ? 'Editar Ponto de Venda' : 'Novo Ponto de Venda'}
               </DialogTitle>
               <DialogDescription>
-                {editingBarraca 
-                  ? 'Atualize as informações da barraca' 
-                  : 'Preencha os dados para criar uma nova barraca'}
+                {editingBarraca
+                  ? 'Atualize as informações do ponto de venda'
+                  : 'Preencha os dados para criar um novo ponto de venda'}
               </DialogDescription>
             </DialogHeader>
             <BarracaForm
@@ -199,10 +199,10 @@ export default function BarracaManagement() {
             <AlertDialogHeader>
               <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
               <AlertDialogDescription>
-                Tem certeza que deseja deletar esta barraca? Esta ação não pode ser desfeita.
+                Tem certeza que deseja deletar este ponto de venda? Esta ação não pode ser desfeita.
                 <br /><br />
-                <strong>Nota:</strong> Barracas com produtos ou histórico de vendas não podem ser deletadas.
-                Neste caso, desative a barraca ao invés de deletá-la.
+                <strong>Nota:</strong> Pontos de venda com produtos ou histórico de vendas não podem ser deletados.
+                Neste caso, desative o PDV ao invés de deletá-lo.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

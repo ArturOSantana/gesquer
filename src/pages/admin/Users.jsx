@@ -38,7 +38,6 @@ export default function Users() {
     email: '',
     password: '',
     role: ROLES.CAIXA,
-    barraca_id: '',
   });
 
   const { toast } = useToast();
@@ -95,18 +94,14 @@ export default function Users() {
   function handleOpenDialog(user = null) {
     if (user) {
       setEditingUser(user);
-      const normalizedBarracaId = user.barraca_id ? Number(user.barraca_id) : null;
       const editFormData = {
         name: user.name,
         email: user.email,
         password: '',
         role: user.role,
-        barraca_id: normalizedBarracaId,
       };
 
       console.log('📝 Abrindo modal de edição do usuário:', user);
-      console.log('🏪 barraca_id original do usuário:', user.barraca_id, 'tipo:', typeof user.barraca_id);
-      console.log('🔢 barraca_id normalizado para o formulário:', normalizedBarracaId, 'tipo:', typeof normalizedBarracaId);
       console.log('📦 FormData inicial do modal:', editFormData);
 
       setFormData(editFormData);
@@ -117,7 +112,6 @@ export default function Users() {
         email: '',
         password: '',
         role: ROLES.CAIXA,
-        barraca_id: null,
       };
 
       console.log('🆕 Abrindo modal para novo usuário');
@@ -159,14 +153,6 @@ export default function Users() {
       return;
     }
 
-    if (formData.role === ROLES.BARRACA && !formData.barraca_id) {
-      toast({
-        title: 'Erro',
-        description: 'Selecione uma barraca para o operador',
-        variant: 'destructive',
-      });
-      return;
-    }
 
     try {
       setLoading(true);
@@ -177,12 +163,7 @@ export default function Users() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
-          barraca_id: null,
         };
-
-        if (formData.role === ROLES.BARRACA) {
-          updateData.barraca_id = formData.barraca_id ? Number(formData.barraca_id) : null;
-        }
 
         console.log('💾 Dados que serão atualizados:', updateData);
 
@@ -235,7 +216,6 @@ export default function Users() {
           name: formData.name,
           email: formData.email,
           role: formData.role,
-          barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
           active: true
         });
         
@@ -246,7 +226,6 @@ export default function Users() {
             name: formData.name,
             email: formData.email,
             role: formData.role,
-            barraca_id: formData.role === ROLES.BARRACA ? formData.barraca_id : null,
             active: true
           });
 
@@ -266,11 +245,6 @@ export default function Users() {
           title: 'Sucesso',
           description: 'Usuário criado com sucesso! Email já confirmado.',
         });
-        
-        // Invalida cache de barracas se criou um operador de barraca
-        if (formData.role === ROLES.BARRACA) {
-          invalidateCache();
-        }
       }
 
       setIsDialogOpen(false);
@@ -443,7 +417,7 @@ export default function Users() {
                 <Select
                   value={formData.role}
                   onValueChange={(value) => {
-                    const updatedFormData = { ...formData, role: value, barraca_id: null };
+                    const updatedFormData = { ...formData, role: value };
                     console.log('👤 Perfil alterado:', value);
                     console.log('📦 FormData após alterar perfil:', updatedFormData);
                     setFormData(updatedFormData);
@@ -455,85 +429,13 @@ export default function Users() {
                   <SelectContent>
                     <SelectItem value={ROLES.ADMIN}>Administrador</SelectItem>
                     <SelectItem value={ROLES.CAIXA}>Caixa</SelectItem>
-                    <SelectItem value={ROLES.BARRACA}>Operador de Barraca</SelectItem>
+                    <SelectItem value="operador">Operador</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  {formData.role === 'operador' && 'Operadores podem ser vinculados a múltiplos PDVs após a criação'}
+                </p>
               </div>
-
-              {formData.role === ROLES.BARRACA && (
-                <div className="space-y-2">
-                  <Label htmlFor="barraca">Barraca *</Label>
-                  
-                  {/* Indicador de loading */}
-                  {loadingBarracas && (
-                    <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                      <Spinner size="sm" />
-                      <span className="text-sm text-blue-700">Carregando barracas...</span>
-                    </div>
-                  )}
-                  
-                  {/* Erro ao carregar */}
-                  {errorBarracas && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                      <p className="text-sm text-red-700">Erro ao carregar barracas: {errorBarracas}</p>
-                    </div>
-                  )}
-                  
-                  {/* Select de barracas */}
-                  {!loadingBarracas && !errorBarracas && (
-                    <Select
-                      value={formData.barraca_id?.toString() || ''}
-                      onValueChange={(value) => {
-                        console.log('🎯 Barraca selecionada:', value, 'tipo:', typeof value);
-
-                        const newBarracaId = value ? parseInt(value, 10) : null;
-                        console.log('🔢 barraca_id convertido:', newBarracaId, 'tipo:', typeof newBarracaId);
-
-                        const newFormData = {
-                          ...formData,
-                          barraca_id: newBarracaId,
-                        };
-
-                        console.log('📝 FormData atualizado após seleção da barraca:', newFormData);
-                        setFormData(newFormData);
-                      }}
-                      disabled={loadingBarracas}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={
-                          loadingBarracas
-                            ? "Carregando..."
-                            : barracas.length === 0
-                              ? "Nenhuma barraca ativa"
-                              : "Selecione uma barraca"
-                        } />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {barracas.length === 0 ? (
-                          <div className="p-4 text-sm text-center">
-                            <p className="text-muted-foreground mb-2">Nenhuma barraca ativa encontrada</p>
-                            <p className="text-xs text-gray-500">
-                              Cadastre barracas ativas antes de criar usuários do tipo Operador de Barraca
-                            </p>
-                          </div>
-                        ) : (
-                          barracas.map((barraca) => (
-                            <SelectItem key={barraca.id} value={barraca.id.toString()}>
-                              {barraca.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  
-                  {!loadingBarracas && barracas.length === 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠️ Você precisa ter pelo menos uma barraca ativa para criar este tipo de usuário
-                    </p>
-                  )}
-                </div>
-              )}
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button
@@ -580,11 +482,6 @@ export default function Users() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600">{user.email}</p>
-                    {user.barracas && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Barraca: {user.barracas.name}
-                      </p>
-                    )}
                   </div>
                 </div>
 

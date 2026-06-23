@@ -1,8 +1,16 @@
 // Configurações da aplicação
 export const APP_CONFIG = {
-  name: import.meta.env.VITE_APP_NAME || 'QuermesseOn!',
+  name: import.meta.env.VITE_APP_NAME || 'Venditor',
   version: import.meta.env.VITE_APP_VERSION || '1.0.0',
 }
+
+// Informações da marca
+export const APP_NAME = 'Venditor'
+export const APP_DESCRIPTION = 'Sistema de Gestão de Eventos'
+
+// Prefixos de QR Code
+export const QR_PREFIX = 'VENDITOR'
+export const QR_LEGACY_PREFIX = 'QUERMESSE' // compatibilidade com QR Codes antigos
 
 // Limites
 export const LIMITS = {
@@ -13,9 +21,10 @@ export const LIMITS = {
 
 // Perfis de usuário
 export const USER_ROLES = {
+  SUPERADMIN: 'superadmin',
   ADMIN: 'admin',
   CAIXA: 'caixa',
-  BARRACA: 'barraca',
+  PDV: 'pdv',
 }
 
 // Tipos de transação

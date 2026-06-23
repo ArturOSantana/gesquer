@@ -74,10 +74,10 @@ export default function Login() {
         {/* Logo e Título */}
         <div className="mb-6 sm:mb-8 text-center">
           <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2">
-            QuermesseOn
+            Venditor
           </h1>
           <p className="text-xs sm:text-sm text-gray-600">
-            Sistema de Gestão de Quermesse
+            Sistema de Gestão de Eventos
           </p>
         </div>
 
@@ -142,7 +142,7 @@ export default function Login() {
         {/* Footer */}
         <div className="mt-4 sm:mt-6 text-center px-4">
           <p className="text-xs text-gray-500">
-            © 2024 QuermesseOn. Todos os direitos reservados.
+            © 2024 Venditor. Todos os direitos reservados.
           </p>
         </div>
       </div>

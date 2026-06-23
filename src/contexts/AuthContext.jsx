@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToast } from '../hooks/use-toast';
 
@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
           name,
           role,
           barraca_id,
-          active,
+          is_active,
           barracas:barraca_id (
             id,
             name
@@ -81,7 +81,7 @@ export function AuthProvider({ children }) {
       console.log('barraca_id no perfil:', data.barraca_id);
       console.log('Tipo de barraca_id:', typeof data.barraca_id);
 
-      if (!data.active) {
+      if (!data.is_active) {
         console.warn('Usuário inativo');
         throw new Error('Usuário inativo');
       }
@@ -208,8 +208,8 @@ export function AuthProvider({ children }) {
     // SuperAdmin e Admin podem acessar todas
     if (profile.role === 'superadmin' || profile.role === 'admin') return true;
 
-    // Barraca só pode acessar a sua própria
-    if (profile.role === 'barraca') {
+    // PDV só pode acessar a sua própria barraca
+    if (profile.role === 'pdv') {
       return profile.barraca_id === barracaId;
     }
 
@@ -223,12 +223,12 @@ export function AuthProvider({ children }) {
 
     switch (profile.role) {
       case 'superadmin':
-        return '/visao';
+        return '/superadmin';
       case 'admin':
         return '/visao';
       case 'caixa':
         return '/caixa/novo-cliente';
-      case 'barraca':
+      case 'pdv':
         return '/sale';
       default:
         return '/';
@@ -249,7 +249,7 @@ export function AuthProvider({ children }) {
     isSuperAdmin: profile?.role === 'superadmin',
     isAdmin: profile?.role === 'admin',
     isCaixa: profile?.role === 'caixa',
-    isBarraca: profile?.role === 'barraca',
+    isPDV: profile?.role === 'pdv',
   };
 
   return (
@@ -259,3 +259,11 @@ export function AuthProvider({ children }) {
   );
 }
 
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

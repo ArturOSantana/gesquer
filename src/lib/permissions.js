@@ -3,7 +3,7 @@ export const ROLES = {
   SUPERADMIN: 'superadmin',
   ADMIN: 'admin',
   CAIXA: 'caixa',
-  BARRACA: 'barraca',
+  PDV: 'pdv',
 };
 
 // Definição de permissões por role
@@ -66,8 +66,8 @@ export const PERMISSIONS = {
     canMakeSales: false,
   },
 
-  // Permissões da BARRACA
-  [ROLES.BARRACA]: {
+  // Permissões do PDV
+  [ROLES.PDV]: {
     canAccessDashboard: false,
     canManageUsers: false,
     canManageBarracas: false,
@@ -133,7 +133,7 @@ export const ALLOWED_ROUTES = {
     '/transferir-saldo',
   ],
 
-  [ROLES.BARRACA]: [
+  [ROLES.PDV]: [
     '/',
     '/sale',
     '/historico', // Filtrado pela barraca
@@ -179,7 +179,7 @@ export const MENU_ITEMS = {
     { path: '/historico', label: 'Histórico', icon: 'History' },
   ],
 
-  [ROLES.BARRACA]: [
+  [ROLES.PDV]: [
     { path: '/', label: 'Home', icon: 'Home' },
     { path: '/sale', label: 'Venda', icon: 'ShoppingCart' },
     { path: '/historico', label: 'Histórico', icon: 'History' },
@@ -221,10 +221,10 @@ export function getMenuItems(userRole) {
 // Obtém rota inicial baseada no role
 export function getInitialRoute(userRole) {
   const routes = {
-    [ROLES.SUPERADMIN]: '/dashboard',
+    [ROLES.SUPERADMIN]: '/superadmin',
     [ROLES.ADMIN]: '/dashboard',
     [ROLES.CAIXA]: '/caixa/novo-cliente',
-    [ROLES.BARRACA]: '/sale',
+    [ROLES.PDV]: '/sale',
   };
 
   return routes[userRole] || '/';
@@ -235,8 +235,8 @@ export function canAccessBarraca(userRole, userBarracaId, targetBarracaId) {
   // SuperAdmin e Admin podem acessar todas
   if (userRole === ROLES.SUPERADMIN || userRole === ROLES.ADMIN) return true;
 
-  // Barraca só pode acessar a sua própria
-  if (userRole === ROLES.BARRACA) {
+  // PDV só pode acessar a sua própria barraca
+  if (userRole === ROLES.PDV) {
     return userBarracaId === targetBarracaId;
   }
 
@@ -250,7 +250,7 @@ export function getRoleLabel(role) {
     [ROLES.SUPERADMIN]: 'Super Administrador',
     [ROLES.ADMIN]: 'Administrador',
     [ROLES.CAIXA]: 'Caixa',
-    [ROLES.BARRACA]: 'Operador de Barraca',
+    [ROLES.PDV]: 'Operador de PDV',
   };
 
   return labels[role] || role;
@@ -262,7 +262,7 @@ export function getRoleBadgeColor(role) {
     [ROLES.SUPERADMIN]: 'bg-purple-100 text-purple-800',
     [ROLES.ADMIN]: 'bg-red-100 text-red-800',
     [ROLES.CAIXA]: 'bg-blue-100 text-blue-800',
-    [ROLES.BARRACA]: 'bg-green-100 text-green-800',
+    [ROLES.PDV]: 'bg-green-100 text-green-800',
   };
 
   return colors[role] || 'bg-gray-100 text-gray-800';

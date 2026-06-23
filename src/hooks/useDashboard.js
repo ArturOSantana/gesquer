@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
+import { useEvent } from '@/contexts/EventContext';
 
 // Cache simples para dados do dashboard
 const dashboardCache = {
@@ -9,6 +10,7 @@ const dashboardCache = {
 };
 
 export function useDashboard() {
+  const { currentEvent } = useEvent();
   const [statistics, setStatistics] = useState(null);
   const [salesChart, setSalesChart] = useState([]);
   const [barracaRanking, setBarracaRanking] = useState([]);
@@ -20,11 +22,16 @@ export function useDashboard() {
   // Função para buscar estatísticas gerais
   const getStatistics = useCallback(async () => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       // Total arrecadado (soma de todas as transações de venda)
       const { data: salesData, error: salesError } = await supabase
         .from('transactions')
         .select('amount')
-        .eq('type', 'sale');
+        .eq('type', 'sale')
+        .eq('event_id', currentEvent.id);
 
       if (salesError) throw salesError;
 
@@ -34,7 +41,8 @@ export function useDashboard() {
       const { data: cardsData, error: cardsError } = await supabase
         .from('cards')
         .select('balance')
-        .eq('status', 'active');
+        .eq('status', 'active')
+        .eq('event_id', currentEvent.id);
 
       if (cardsError) throw cardsError;
 
@@ -43,7 +51,8 @@ export function useDashboard() {
       // Total de clientes (cartões únicos)
       const { count: totalClientes, error: clientsError } = await supabase
         .from('cards')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('event_id', currentEvent.id);
 
       if (clientsError) throw clientsError;
 
@@ -55,7 +64,8 @@ export function useDashboard() {
         .from('transactions')
         .select('amount')
         .eq('type', 'sale')
-        .gte('created_at', hoje.toISOString());
+        .gte('created_at', hoje.toISOString())
+        .eq('event_id', currentEvent.id);
 
       if (vendasError) throw vendasError;
 
@@ -65,7 +75,7 @@ export function useDashboard() {
       const { count: barracasAtivas, error: barracasError } = await supabase
         .from('barracas')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
+        .eq('event_id', currentEvent.id);
 
       if (barracasError) throw barracasError;
 
@@ -74,7 +84,7 @@ export function useDashboard() {
         .from('products')
         .select('*')
         .lte('stock_quantity', 10)
-        .eq('status', 'active');
+        .eq('event_id', currentEvent.id);
 
       if (produtosError) throw produtosError;
 
@@ -90,11 +100,15 @@ export function useDashboard() {
       console.error('Erro ao buscar estatísticas:', err);
       throw err;
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Função para buscar dados do gráfico de vendas por hora
   const getSalesChart = useCallback(async () => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const ultimas24h = new Date();
       ultimas24h.setHours(ultimas24h.getHours() - 24);
 
@@ -103,6 +117,7 @@ export function useDashboard() {
         .select('amount, created_at')
         .eq('type', 'sale')
         .gte('created_at', ultimas24h.toISOString())
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: true });
 
       if (error) throw error;
@@ -133,11 +148,15 @@ export function useDashboard() {
       console.error('Erro ao buscar gráfico de vendas:', err);
       throw err;
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Função para buscar ranking de barracas
   const getBarracaRanking = useCallback(async () => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data: transactions, error } = await supabase
         .from('transactions')
         .select(`
@@ -145,7 +164,8 @@ export function useDashboard() {
           barraca_id,
           barracas (name)
         `)
-        .eq('type', 'sale');
+        .eq('type', 'sale')
+        .eq('event_id', currentEvent.id);
 
       if (error) throw error;
 
@@ -175,11 +195,15 @@ export function useDashboard() {
       console.error('Erro ao buscar ranking de barracas:', err);
       throw err;
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Função para buscar transações recentes
   const getRecentTransactions = useCallback(async () => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -187,6 +211,7 @@ export function useDashboard() {
           cards (id, client:clients(name)),
           barracas (name)
         `)
+        .eq('event_id', currentEvent.id)
         .order('created_at', { ascending: false })
         .limit(10);
 
@@ -197,11 +222,15 @@ export function useDashboard() {
       console.error('Erro ao buscar transações recentes:', err);
       throw err;
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Função para buscar alertas
   const getAlerts = useCallback(async () => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       const alertsList = [];
 
       // Produtos com estoque baixo
@@ -209,7 +238,7 @@ export function useDashboard() {
         .from('products')
         .select('*, barracas(name)')
         .lte('stock_quantity', 10)
-        .eq('status', 'active');
+        .eq('event_id', currentEvent.id);
 
       if (produtosError) throw produtosError;
 
@@ -226,7 +255,8 @@ export function useDashboard() {
       const { data: cartoesBloqueados, error: cartoesError } = await supabase
         .from('cards')
         .select('id, client:clients(name)')
-        .eq('status', 'blocked');
+        .eq('status', 'blocked')
+        .eq('event_id', currentEvent.id);
 
       if (cartoesError) throw cartoesError;
 
@@ -247,11 +277,15 @@ export function useDashboard() {
       console.error('Erro ao buscar alertas:', err);
       throw err;
     }
-  }, []);
+  }, [currentEvent?.id]);
 
   // Função para carregar todos os dados
   const loadDashboardData = useCallback(async () => {
     try {
+      if (!currentEvent?.id) {
+        throw new Error('Nenhum evento selecionado');
+      }
+
       setLoading(true);
       setError(null);
 
@@ -259,6 +293,7 @@ export function useDashboard() {
       const now = Date.now();
       if (
         dashboardCache.data &&
+        dashboardCache.data.eventId === currentEvent.id &&
         dashboardCache.timestamp &&
         now - dashboardCache.timestamp < dashboardCache.ttl
       ) {
@@ -290,6 +325,7 @@ export function useDashboard() {
 
       // Atualizar cache
       dashboardCache.data = {
+        eventId: currentEvent.id,
         statistics: stats,
         salesChart: chart,
         barracaRanking: ranking,
@@ -304,7 +340,7 @@ export function useDashboard() {
       setError(err.message);
       setLoading(false);
     }
-  }, [getStatistics, getSalesChart, getBarracaRanking, getRecentTransactions, getAlerts]);
+  }, [getStatistics, getSalesChart, getBarracaRanking, getRecentTransactions, getAlerts, currentEvent?.id]);
 
   // Função para forçar atualização (limpar cache)
   const refresh = useCallback(() => {
@@ -315,8 +351,17 @@ export function useDashboard() {
 
   // Carregar dados ao montar o componente
   useEffect(() => {
-    loadDashboardData();
-  }, [loadDashboardData]);
+    if (currentEvent?.id) {
+      loadDashboardData();
+    } else {
+      setStatistics(null);
+      setSalesChart([]);
+      setBarracaRanking([]);
+      setRecentTransactions([]);
+      setAlerts([]);
+      setLoading(false);
+    }
+  }, [loadDashboardData, currentEvent?.id]);
 
   return {
     statistics,
