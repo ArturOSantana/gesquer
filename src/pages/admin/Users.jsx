@@ -225,8 +225,7 @@ export default function Users() {
             id: authData.user.id,
             name: formData.name,
             email: formData.email,
-            role: formData.role,
-            active: true
+            role: formData.role
           });
 
         if (dbError) {

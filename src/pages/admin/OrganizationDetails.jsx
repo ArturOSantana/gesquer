@@ -10,10 +10,10 @@ import { Badge } from '../../components/ui/badge'
 import { Alert, AlertDescription } from '../../components/ui/alert'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
-import { 
-  ArrowLeft, 
-  Building2, 
-  Users, 
+import {
+  ArrowLeft,
+  Building2,
+  Users,
   Calendar,
   Layers,
   AlertCircle,
@@ -25,7 +25,8 @@ import {
   Trash2,
   Eye,
   CheckCircle,
-  XCircle
+  XCircle,
+  Key
 } from 'lucide-react'
 import {
   Dialog,
@@ -64,6 +65,9 @@ export default function OrganizationDetails() {
   // Estados para diálogos
   const [userDialogOpen, setUserDialogOpen] = useState(false)
   const [eventDialogOpen, setEventDialogOpen] = useState(false)
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState(null)
+  const [newPassword, setNewPassword] = useState('')
   const [newUserData, setNewUserData] = useState({
     name: '',
     email: '',
@@ -214,32 +218,36 @@ export default function OrganizationDetails() {
         throw new Error('Preencha todos os campos')
       }
 
-      // Criar usuário no Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: newUserData.email,
-        password: newUserData.password,
-        email_confirm: true,
-        user_metadata: {
-          name: newUserData.name,
-          role: newUserData.role
+      // Chamar Edge Function para criar usuário (sem rate limit)
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada')
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: newUserData.name,
+            email: newUserData.email,
+            password: newUserData.password,
+            role: newUserData.role,
+            organization_id: id
+          })
         }
-      })
+      )
 
-      if (authError) throw authError
+      const result = await response.json()
 
-      // Inserir na tabela users
-      const { error: dbError } = await supabase
-        .from('users')
-        .insert({
-          id: authData.user.id,
-          name: newUserData.name,
-          email: newUserData.email,
-          role: newUserData.role,
-          organization_id: id,
-          active: true
-        })
-
-      if (dbError) throw dbError
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao criar usuário')
+      }
 
       toast({
         title: 'Sucesso',
@@ -248,11 +256,15 @@ export default function OrganizationDetails() {
 
       setUserDialogOpen(false)
       setNewUserData({ name: '', email: '', password: '', role: ROLES.ADMIN })
+      
+      await new Promise(resolve => setTimeout(resolve, 1000))
       loadUsers()
+      loadOrganization() // Recarregar para atualizar estatísticas
     } catch (err) {
+      console.error('Erro ao criar usuário:', err)
       toast({
         title: 'Erro',
-        description: err.message,
+        description: err.message || 'Erro ao criar usuário',
         variant: 'destructive'
       })
     }
@@ -282,6 +294,57 @@ export default function OrganizationDetails() {
       setEventDialogOpen(false)
       setNewEventData({ name: '', description: '', start_date: '', end_date: '' })
       loadEvents()
+    } catch (err) {
+      toast({
+        title: 'Erro',
+        description: err.message,
+        variant: 'destructive'
+      })
+    }
+  }
+
+  const handleResetPassword = async () => {
+    try {
+      if (!newPassword || newPassword.length < 6) {
+        throw new Error('A senha deve ter no mínimo 6 caracteres')
+      }
+
+      // Chamar Edge Function para redefinir senha
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        throw new Error('Sessão não encontrada')
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-reset-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: selectedUser.id,
+            newPassword: newPassword
+          })
+        }
+      )
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao alterar senha')
+      }
+
+      toast({
+        title: 'Sucesso',
+        description: 'Senha alterada com sucesso'
+      })
+
+      setPasswordDialogOpen(false)
+      setSelectedUser(null)
+      setNewPassword('')
     } catch (err) {
       toast({
         title: 'Erro',
@@ -377,10 +440,19 @@ export default function OrganizationDetails() {
           </div>
         </div>
         {!editing ? (
-          <Button onClick={() => setEditing(true)}>
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/admin/organizations/${id}/limits`)}
+            >
+              <Users className="h-4 w-4 mr-2" />
+              Gerenciar Limites
+            </Button>
+            <Button onClick={() => setEditing(true)}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          </div>
         ) : (
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => {
@@ -559,12 +631,26 @@ export default function OrganizationDetails() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={ROLES.ADMIN}>Administrador</SelectItem>
                         <SelectItem value={ROLES.CAIXA}>Caixa</SelectItem>
                         <SelectItem value={ROLES.PDV}>Operador PDV</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Mostrar limites de usuários */}
+                  {organization && (
+                    <Alert>
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        <div className="text-sm space-y-1">
+                          <p><strong>Limites da Organização:</strong></p>
+                          <p>• Caixas: {users.filter(u => u.role === ROLES.CAIXA).length} / {organization.max_users_caixa || 5}</p>
+                          <p>• Operadores PDV: {users.filter(u => u.role === ROLES.PDV).length} / {organization.max_users_pdv || 10}</p>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <Button onClick={handleCreateUser} className="w-full">
                     Criar Usuário
                   </Button>
@@ -590,14 +676,26 @@ export default function OrganizationDetails() {
                       </div>
                       <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="text-red-600"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedUser(user)
+                          setPasswordDialogOpen(true)
+                        }}
+                      >
+                        <Key className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteUser(user.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -611,6 +709,48 @@ export default function OrganizationDetails() {
               </Card>
             )}
           </div>
+
+          {/* Dialog para Redefinir Senha */}
+          <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Redefinir Senha</DialogTitle>
+                <DialogDescription>
+                  Alterar senha do usuário: {selectedUser?.name}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Nova Senha *</Label>
+                  <Input
+                    type="password"
+                    placeholder="Mínimo 6 caracteres"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleResetPassword}
+                    className="flex-1"
+                    disabled={!newPassword || newPassword.length < 6}
+                  >
+                    Alterar Senha
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPasswordDialogOpen(false)
+                      setSelectedUser(null)
+                      setNewPassword('')
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         {/* Aba de Eventos */}

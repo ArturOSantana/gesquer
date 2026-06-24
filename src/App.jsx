@@ -27,6 +27,8 @@ import NewEvent from './pages/admin/NewEvent'
 import OrganizationManagement from './pages/admin/OrganizationManagement'
 import NewOrganization from './pages/admin/NewOrganization'
 import OrganizationDetails from './pages/admin/OrganizationDetails'
+import OrganizationLimits from './pages/admin/OrganizationLimits'
+import MyOrganizationUsers from './pages/admin/MyOrganizationUsers'
 import NovoCliente from './pages/caixa/NovoCliente'
 import Recarga from './pages/caixa/Recarga'
 import TransferirCartao from './pages/caixa/TransferirCartao'
@@ -213,6 +215,16 @@ function App() {
                 }
               />
 
+              {/* Admin - Meus Usuários - ADMIN E SUPERADMIN */}
+              <Route
+                path="admin/meus-usuarios"
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'superadmin']}>
+                    <MyOrganizationUsers />
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Admin - Gerar QR Codes em Lote - APENAS SUPERADMIN */}
               <Route
                 path="admin/gerar-qr-lote"
@@ -279,6 +291,16 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['superadmin']}>
                     <OrganizationDetails />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Admin - Gerenciar Limites da Organização - APENAS SUPERADMIN */}
+              <Route
+                path="admin/organizations/:id/limits"
+                element={
+                  <ProtectedRoute allowedRoles={['superadmin']}>
+                    <OrganizationLimits />
                   </ProtectedRoute>
                 }
               />

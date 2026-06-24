@@ -91,7 +91,7 @@ export default function Header() {
       ]
     }
 
-    // Menu para ADMIN - Sem acesso a Admin (Usuários e Gerar Lote)
+    // Menu para ADMIN - Com acesso a gerenciar usuários da sua organização
     if (profile.role === 'admin') {
       return [
         { name: 'Visão', href: '/visao', icon: LayoutDashboard },
@@ -111,6 +111,7 @@ export default function Header() {
             { name: 'Pontos de Venda', href: '/barracas', icon: Store },
             { name: 'Estoque', href: '/estoque', icon: Package },
             { name: 'Cartões', href: '/cards', icon: CreditCard },
+            { name: 'Meus Usuários', href: '/admin/meus-usuarios', icon: Users },
           ]
         },
         {

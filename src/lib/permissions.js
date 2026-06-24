@@ -28,10 +28,13 @@ export const PERMISSIONS = {
     canAccessSystemSettings: true,
   },
 
-  // Permissões do ADMIN - Sem gestão de usuários e lotes
+  // Permissões do ADMIN - Pode criar Caixas e PDVs (com limite)
   [ROLES.ADMIN]: {
     canAccessDashboard: true,
-    canManageUsers: false, // REMOVIDO
+    canManageUsers: true, // Pode criar Caixas e PDVs
+    canCreateCaixa: true, // Pode criar usuários Caixa
+    canCreatePDV: true, // Pode criar usuários PDV
+    canCreateAdmin: false, // NÃO pode criar outros Admins
     canManageBarracas: true,
     canManageProducts: true,
     canManageStock: true,
