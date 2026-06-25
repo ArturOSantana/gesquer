@@ -1,232 +1,501 @@
-# Venditor - Plataforma de Gestão para Eventos e Vendas Temporárias
+# Venditor
 
-## ⚠️ ALERTA - Correção de RLS Necessária
+Plataforma SaaS para gestão de eventos com carteira digital via QR Code, controle de vendas, estoque, operadores e relatórios em tempo real.
 
-Se você está vendo erro "infinite recursion detected", execute IMEDIATAMENTE o script em [EMERGENCIA-RLS-V3.md](./EMERGENCIA-RLS-V3.md).
+O **Venditor** nasceu para resolver problemas comuns em eventos: filas, controle manual de fichas, falta de rastreabilidade e dificuldade de gestão financeira.
 
-Este erro impede login no sistema. A correção leva menos de 2 minutos.
+Inicialmente pensado para quermesses, o sistema evoluiu para atender qualquer tipo de evento, seja recorrente ou pontual.
 
-**Sistema completo de créditos digitais, pontos de venda e controle de estoque para eventos, cantinas, festivais e estabelecimentos temporários.**
+---
 
-Venditor é uma plataforma SaaS moderna que elimina o uso de dinheiro físico em eventos através de um sistema de créditos digitais. Ideal para quermesses, festas juninas, novenas, cantinas escolares, festivais, eventos corporativos e muito mais.
+# Visão Geral
 
-### 🎯 Principais Benefícios
+O Venditor permite que organizadores realizem a gestão completa de eventos utilizando cartões com QR Code e saldo pré-pago.
 
-- **Sem dinheiro físico**: Sistema 100% digital com QR Codes
-- **Controle total**: Acompanhe vendas e estoque em tempo real
-- **Multi-evento**: Gerencie múltiplos eventos simultaneamente
-- **Seguro**: Créditos não expiram e podem ser transferidos
-- **Fácil de usar**: Interface intuitiva para todos os perfis
+O participante carrega créditos em um cartão e utiliza esse saldo para realizar compras em qualquer ponto de venda do evento.
 
-> **Nota:** Este sistema foi anteriormente conhecido como QuermesseOn. A renomeação para Venditor reflete a expansão do sistema para gestão de eventos em geral, não apenas quermesses.
+Todo o processo é registrado em tempo real.
 
-## 🚀 Stack Tecnológica
+---
 
-- **Frontend**: React 18 + Vite
-- **Styling**: Tailwind CSS + shadcn/ui
-- **Backend**: Supabase (PostgreSQL + BaaS)
-- **State Management**: Zustand
-- **Routing**: React Router v6
-- **QR Code**: html5-qrcode + qrcode
-- **Deploy**: Vercel
+# Casos de Uso
 
-## 📋 Funcionalidades
+O Venditor pode ser utilizado em:
 
-### Core
-- ✅ Geração e leitura de QR Codes
-- ✅ Gestão de cartões e saldos
-- ✅ Sistema de vendas com carrinho
-- ✅ Controle de estoque em tempo real
-- ✅ Transferência de saldo entre cartões
-- ✅ Histórico completo de transações
-- ✅ Relatórios e exportação de dados
+* Quermesses
+* Festas paroquiais
+* Novenas
+* Cantinas semanais
+* Festivais
+* Shows
+* Eventos corporativos
+* Congressos
+* Feiras culturais
+* Festas escolares
+* Food Parks
+* Eventos beneficentes
 
-### Perfis de Usuário
-- **Admin**: Acesso total ao sistema
-- **Caixa**: Recarga de cartões e consultas
-- **Ponto de Venda (PDV)**: Vendas e gestão de estoque
+---
 
-## 🛠️ Setup do Projeto
+# Funcionalidades
 
-### Pré-requisitos
-- Node.js 18+
-- npm ou yarn
-- Conta no Supabase
+## Carteira Digital via QR Code
 
-### Instalação
+Cada participante recebe um cartão com QR Code único.
 
-```bash
-# Instalar dependências
-npm install
+Funcionalidades:
 
-# Copiar arquivo de ambiente
-cp .env.example .env.local
+* Cadastro de participantes
+* Emissão de cartões
+* Recarga de saldo
+* Consulta de saldo
+* Histórico de movimentações
+* Transferência para novo cartão
+* Bloqueio de cartões perdidos ou danificados
 
-# Configurar variáveis de ambiente no .env.local
-# VITE_SUPABASE_URL=sua-url
-# VITE_SUPABASE_ANON_KEY=sua-chave
+---
 
-# Executar em desenvolvimento
-npm run dev
+## Vendas
 
-# Build para produção
-npm run build
+Os operadores realizam vendas diretamente pelo navegador do celular.
 
-# Preview da build
-npm run preview
+Fluxo:
+
+```text
+Selecionar produtos
+↓
+Calcular total
+↓
+Escanear QR Code
+↓
+Validar saldo
+↓
+Confirmar venda
+↓
+Atualizar estoque
+↓
+Registrar transação
 ```
 
-## 🗄️ Configuração do Banco de Dados
+---
 
-1. Criar projeto no Supabase
-2. Acessar SQL Editor
-3. Executar o script SQL completo (ver `especificacao-tecnica-completa.md`)
-4. Verificar criação de tabelas, views, stored procedures e RLS
+## Controle de Estoque
 
-## 📁 Estrutura do Projeto
+Cada evento possui seus próprios produtos e pontos de venda.
 
-```
-src/
-├── components/       # Componentes React
-│   ├── ui/          # shadcn/ui components
-│   ├── layout/      # Layout components
-│   ├── qr/          # QR Code components
-│   ├── cards/       # Card management
-│   ├── sales/       # Sales components
-│   ├── stock/       # Stock management
-│   ├── barracas/    # Sales point management (PDV)
-│   └── transactions/# Transaction history
-├── pages/           # Páginas da aplicação
-├── lib/             # Utilitários e configurações
-├── hooks/           # Custom React hooks
-├── store/           # Zustand store
-└── styles/          # Estilos globais
-```
+Funcionalidades:
 
-## 🔄 Compatibilidade com QR Codes
+* Cadastro de produtos
+* Estoque inicial
+* Entrada de estoque
+* Baixa automática por venda
+* Estoque mínimo
+* Alertas de reposição
 
-O sistema mantém compatibilidade com QR Codes antigos:
-- **Formato novo**: `VENDITOR:uuid`
-- **Formato legado**: `QUERMESSE:uuid` e `QUERMESSEON:uuid` (ainda funcionam)
-- **UUID puro**: Também suportado
+---
 
-Novos QR Codes são gerados no formato Venditor, mas os antigos continuam funcionando normalmente.
+## Dashboard
 
-## 🔒 Segurança
+Acompanhamento em tempo real da operação.
 
-- Row Level Security (RLS) no Supabase
-- Validações client-side e server-side
-- Idempotência em transações críticas
-- Prevenção de race conditions
-- Auditoria completa de operações
+Indicadores:
 
-## 📱 PWA
+* Total arrecadado
+* Vendas por ponto de venda
+* Produtos mais vendidos
+* Estoque crítico
+* Saldo em circulação
+* Histórico de transações
+* Ranking de vendas
 
-O sistema é configurado como Progressive Web App, permitindo:
-- Instalação no dispositivo
-- Funcionamento offline (cache)
-- Notificações push (futuro)
+---
 
-## 🚀 Deploy
+## Histórico e Auditoria
 
-### Vercel (Recomendado)
+Todas as operações são registradas.
 
-O sistema está otimizado para deploy na Vercel com configuração automática.
+Exemplos:
 
-#### Deploy Rápido
+* Recargas
+* Vendas
+* Transferências
+* Estornos
+* Alterações de estoque
+* Logins
+* Ações administrativas
 
-1. **Push para GitHub**
-   ```bash
-   git add .
-   git commit -m "Deploy inicial"
-   git push origin main
-   ```
+---
 
-2. **Importar na Vercel**
-   - Acesse [vercel.com](https://vercel.com)
-   - Clique em "Add New Project"
-   - Selecione seu repositório
-   - Clique em "Import"
+# Arquitetura
 
-3. **Configurar Variáveis de Ambiente** ⚠️ **IMPORTANTE**
-   
-   Na Vercel, vá em **Settings → Environment Variables** e adicione:
-   
-   ```
-   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-   VITE_SUPABASE_ANON_KEY=sua-chave-anonima-aqui
-   VITE_SUPABASE_SERVICE_ROLE_KEY=sua-service-role-key-aqui
-   ```
-   
-   **Sem essas variáveis, a aplicação mostrará tela em branco!**
-   
-   📖 **[CONFIGURACAO-VERCEL-SERVICE-ROLE.md](./CONFIGURACAO-VERCEL-SERVICE-ROLE.md)** - Guia detalhado para configurar a Service Role Key
+## Estrutura Multi-Organização
 
-4. **Deploy**
-   - Clique em "Deploy"
-   - Aguarde o build (1-2 minutos)
-   - Acesse a URL fornecida
-
-#### Guia Completo
-
-Para instruções detalhadas, incluindo troubleshooting e configurações avançadas, consulte:
-
-📖 **[VERCEL-DEPLOY.md](./VERCEL-DEPLOY.md)** - Guia completo de deploy
-
-#### Troubleshooting Rápido
-
-**Tela em branco após deploy?**
-- ✅ Verifique se configurou as variáveis de ambiente
-- ✅ Faça um redeploy após adicionar as variáveis
-- ✅ Verifique o console do navegador (F12) para erros
-
-**Build falhou?**
-- ✅ Teste localmente: `npm run build`
-- ✅ Verifique os logs na Vercel
-- ✅ Certifique-se que todas as dependências estão no package.json
-
-**Erro de RLS ao criar usuários?**
-- ✅ Consulte o **[Guia Final de Correção de RLS](./GUIA-FINAL-RLS.md)** para resolver definitivamente
-- ✅ Erro: "new row violates row-level security policy for table 'users'"
-- ✅ Solução: Executar script SQL de correção de políticas RLS
-
-#### Deploy via CLI (Opcional)
-
-```bash
-# Instalar Vercel CLI
-npm i -g vercel
-
-# Login
-vercel login
-
-# Deploy
-vercel
-
-# Deploy para produção
-vercel --prod
+```text
+Venditor
+│
+├── Organização
+│   ├── Usuários
+│   ├── Clientes
+│   ├── Cartões
+│   └── Eventos
+│
+└── Organização
+    ├── Usuários
+    ├── Clientes
+    ├── Cartões
+    └── Eventos
 ```
 
-**Nota:** Ainda assim, você precisa configurar as variáveis de ambiente no dashboard da Vercel.
+---
 
-## 📊 Monitoramento
+## Estrutura de Evento
 
-- Logs de auditoria no Supabase
-- Métricas de performance
-- Alertas de estoque baixo
-- Relatórios de vendas
+```text
+Evento
+│
+├── Pontos de Venda
+├── Produtos
+├── Estoque
+├── Operadores
+├── Vendas
+└── Transações
+```
 
-## 🤝 Contribuindo
+---
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+# Hierarquia de Usuários
 
-## 📝 Licença
+## SuperAdmin
 
-Este projeto está sob a licença MIT.
+Responsável pela plataforma.
 
-## 📞 Suporte
+Permissões:
 
-Para dúvidas e suporte, consulte a documentação técnica completa em `especificacao-tecnica-completa.md`.
+* Gerenciar organizações
+* Criar administradores
+* Visualizar métricas globais
+* Configurar o sistema
+* Prestar suporte
+
+---
+
+## Admin
+
+Responsável pela organização.
+
+Permissões:
+
+* Criar eventos
+* Gerenciar produtos
+* Gerenciar estoque
+* Criar usuários
+* Visualizar relatórios
+* Monitorar vendas
+
+---
+
+## Caixa
+
+Responsável pela gestão dos cartões.
+
+Permissões:
+
+* Cadastrar participantes
+* Emitir cartões
+* Recarregar saldo
+* Transferir cartões
+* Consultar movimentações
+
+---
+
+## Operador
+
+Responsável pelas vendas.
+
+Permissões:
+
+* Registrar vendas
+* Consultar saldo
+* Visualizar histórico operacional
+
+---
+
+# Fluxo de Operação
+
+## Configuração Inicial
+
+```text
+SuperAdmin
+    ↓
+Cria Organização
+    ↓
+Cria Admin
+    ↓
+Admin cria Evento
+    ↓
+Admin cria Operadores
+    ↓
+Evento pronto para operação
+```
+
+---
+
+## Operação do Evento
+
+```text
+Participante chega
+    ↓
+Caixa emite cartão
+    ↓
+Caixa adiciona saldo
+    ↓
+Participante realiza compras
+    ↓
+Operador escaneia QR Code
+    ↓
+Saldo é debitado
+    ↓
+Venda registrada
+```
+
+---
+
+# Estrutura do Banco de Dados
+
+## organizations
+
+Representa a instituição proprietária da operação.
+
+Exemplos:
+
+* Paróquia
+* Escola
+* Empresa
+* Associação
+
+---
+
+## events
+
+Representa cada evento criado pela organização.
+
+Exemplos:
+
+* Quermesse 2027
+* Festa Junina
+* Novena de Maio
+* Café dos Jovens
+
+---
+
+## users
+
+Usuários da plataforma.
+
+Perfis:
+
+```text
+SUPERADMIN
+ADMIN
+CAIXA
+OPERADOR
+```
+
+---
+
+## customers
+
+Participantes cadastrados.
+
+Campos principais:
+
+```text
+id
+nome
+telefone
+ativo
+```
+
+---
+
+## cards
+
+Cartões utilizados pelos participantes.
+
+Campos principais:
+
+```text
+id
+customer_id
+saldo
+qr_code
+status
+```
+
+---
+
+## points_of_sale
+
+Pontos de venda do evento.
+
+Exemplos:
+
+* Pastel
+* Refrigerante
+* Doces
+* Rifa
+* Camisetas
+
+---
+
+## products
+
+Produtos vendidos em cada ponto de venda.
+
+---
+
+## sales
+
+Registro das vendas realizadas.
+
+---
+
+## transactions
+
+Registro financeiro completo.
+
+Tipos:
+
+* Recarga
+* Venda
+* Transferência
+* Estorno
+* Ajuste
+
+---
+
+# Stack Tecnológica
+
+## Frontend
+
+* React 18
+* Vite
+* Tailwind CSS
+* PWA
+* React Router
+* Zustand
+* html5-qrcode
+* qrcode
+
+---
+
+## Backend
+
+* Supabase
+* PostgreSQL
+* Row Level Security (RLS)
+* JWT Authentication
+
+---
+
+## Infraestrutura
+
+* Vercel
+* Supabase Cloud
+
+---
+
+# Segurança
+
+## Autenticação
+
+* JWT
+* Refresh Tokens
+* Controle por perfil
+
+## Banco de Dados
+
+* PostgreSQL
+* Transações ACID
+* Validação atômica de saldo
+
+## Proteções
+
+* HTTPS
+* RLS
+* Logs de auditoria
+* Idempotência de transações
+* Proteção contra cobranças duplicadas
+
+---
+
+# Progressive Web App (PWA)
+
+O Venditor funciona diretamente no navegador e pode ser instalado no celular.
+
+Recursos:
+
+* Instalação sem lojas de aplicativos
+* Cache inteligente
+* Inicialização rápida
+* Interface otimizada para dispositivos móveis
+
+---
+
+# Escalabilidade
+
+## Plano Gratuito
+
+Indicado para:
+
+* Até 1.000 participantes por evento
+* Até 20 operadores simultâneos
+* Pequenos e médios eventos
+
+---
+
+## Plano Profissional
+
+Indicado para:
+
+* Múltiplos eventos simultâneos
+* Milhares de participantes
+* Operação contínua durante todo o ano
+
+---
+
+# Roadmap
+
+## Versão 1.0
+
+* Carteira digital
+* QR Code
+* Vendas
+* Estoque
+* Dashboard
+* Histórico
+
+## Versão 2.0
+
+* Exportação Excel
+* Relatórios avançados
+* Impressão em lote de cartões
+* Dashboard financeiro avançado
+
+## Versão 3.0
+
+* Integração PIX
+* Notificações
+* Aplicativo mobile
+* Multi-admin por evento
+
+
+---
+
+# Missão
+
+Oferecer uma plataforma simples, rápida e segura para gestão de eventos, eliminando fichas físicas, reduzindo filas e proporcionando controle total sobre vendas, estoque e movimentações financeiras.
+
+## Venditor
+
+Gestão inteligente para eventos.
